@@ -8,15 +8,14 @@ import hashlib, base64, hmac, json
 def get_shopify_items():
 	return get_request('/admin/products.json')['products']
 
-
 def get_shopify_orders():
 	return get_request('/admin/orders.json')['orders']
 
-
 def get_country():
 	return get_request('/admin/countries.json')['countries']
-
-
+	
+def get_shopify_customers():
+	return get_request('/admin/customers.json')['customers']
 
 def create_webhook(topic, address):
 	post_request('admin/webhooks.json', json.dumps({
@@ -76,24 +75,27 @@ def get_shopify_settings():
 	d = frappe.get_doc("Shopify Settings")
 	return d.as_dict()
 	
-
 def get_request(path):
 	settings = get_shopify_settings()
 	s = get_request_session()
 	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
+	print url
 	r = s.get(url)
 	r.raise_for_status()
 	return r.json()
 	
-
 def post_request(path, data):
 	settings = get_shopify_settings()
 	s = get_request_session()
 	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
-	print data
+	print "data",data,url
 	r = s.post(url, data=data, headers={'Content-type': 'application/json'})
 	r.raise_for_status()
 	return r.json()
 
-	
-	
+def delete_request(path):
+	settings = get_shopify_settings()
+	s = get_request_session()
+	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
+	r = s.delete(url)
+	r.raise_for_status()
