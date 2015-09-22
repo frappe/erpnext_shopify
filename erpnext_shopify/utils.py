@@ -25,7 +25,10 @@ def create_webhook(topic, address):
 			"format": "json"
 		}
 	}))
- 
+
+def get_address_type(i):
+	return ["Billing", "Shipping", "Office", "Personal", "Plant", "Postal", "Shop", "Subsidiary", "Warehouse", "Other"][i]
+
 def shopify_webhook(f):
 	"""
 	A decorator thats checks and validates a Shopify Webhook request.
@@ -88,8 +91,8 @@ def post_request(path, data):
 	settings = get_shopify_settings()
 	s = get_request_session()
 	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
-	print "data",data,url
-	r = s.post(url, data=data, headers={'Content-type': 'application/json'})
+	print "data",json.dumps(data),url
+	r = s.post(url, data=json.dumps(data), headers={'Content-type': 'application/json'})
 	r.raise_for_status()
 	return r.json()
 
