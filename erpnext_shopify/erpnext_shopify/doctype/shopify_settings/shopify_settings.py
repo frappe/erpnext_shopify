@@ -7,7 +7,7 @@ import frappe
 from erpnext_shopify.utils import create_webhook, delete_request, get_request, get_shopify_customers,\
  get_address_type, post_request, get_shopify_items, get_shopify_orders
 from frappe.model.document import Document
-from frappe.utils import cstr
+from frappe.utils import cstr, flt, nowdate, nowtime
 from frappe import _
 import json
 
@@ -315,29 +315,50 @@ def create_salse_order(order, shopify_settings):
 		"doctype": "Sales Order",
 		"id": order.get("id"),
 		"customer": frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"),
-		"delivery_date": frappe.utils.nowdate(),
+		"delivery_date": nowdate(),
 		"selling_price_list": shopify_settings.price_list,
 		"ignore_pricing_rule": 1,
 		"items": get_item_line(order.get("line_items"), shopify_settings),
 		"taxes": get_tax_line(order.get("tax_lines"), shopify_settings)
-	}).insert()
+	}).submit()
 	
 def create_delivery_note(oerder, shopify_settings):pass
 
 def get_item_line(order_items, shopify_settings):
-	items = []
+	items, reconcilation_items = [], []
 	for item in order_items:
+		item_code = get_item_code(item)
 		items.append({
-			"item_code": get_item_code(item),
+			"item_code": item_code,
 			"item_name": item.get("name"),
 			"rate": item.get("price"),
 			"qty": item.get("quantity"),
 			"stock_uom": item.get("sku"),
 			"warehouse": shopify_settings.warehouse
 		})
-	
+		
+		check_for_item_stock(item_code, item.get("quantity"), item.get("price"), shopify_settings.warehouse, reconcilation_items)
+		
+	create_reconcilation_entry(reconcilation_items)
 	return items
 
+def check_for_item_stock(item_code, qty, price, warehouse, reconcilation_items):
+	actual_qty = frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty")
+	if flt(actual_qty) < flt(qty):
+		reconcilation_items.append({
+			"item_code": item_code,
+			"warehouse": warehouse,
+			"qty": (flt(actual_qty) + flt(qty)),
+			"valuation_rate": (flt(price) * flt(qty))
+		})
+	
+def create_reconcilation_entry(reconcilation_items):
+	frappe.errprint(reconcilation_items)
+	frappe.get_doc({
+		"doctype": "Stock Reconciliation",
+		"items": reconcilation_items
+	}).submit()
+	
 def get_item_code(item):
 	item_code = frappe.db.get_value("Item", {"id": item.get("variant_id")}, "item_code")
 	if not item_code:
