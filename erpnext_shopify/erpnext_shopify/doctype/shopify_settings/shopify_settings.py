@@ -4,24 +4,23 @@
 
 from __future__ import unicode_literals
 import frappe
-from erpnext_shopify.utils import create_webhook, delete_request, get_request, get_shopify_customers,\
- get_address_type, post_request, get_shopify_items, get_shopify_orders
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, nowtime
-from frappe import _
-import json
+from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
+from erpnext_shopify.utils import get_request, get_shopify_customers, get_address_type, post_request,\
+ get_shopify_items, get_shopify_orders
 
 shopify_variants_attr_list = ["option1", "option2", "option3"] 
 
-
 class ShopifySettings(Document):
 	def sync_shopify(self):
-		# sync_products(self.price_list, self.warehouse)
-		# sync_customers()
-		sync_orders()
-		frappe.msgprint("Customers Sync")
+		if self.enable_shopify:
+			sync_products(self.price_list, self.warehouse)
+			sync_customers()
+			sync_orders()
+			frappe.msgprint("Customers Sync")
 		
-
 def sync_products(price_list, warehouse):
 	sync_shopify_items(warehouse)
 	sync_erp_items(price_list, warehouse)
@@ -306,12 +305,12 @@ def get_id(item):pass
 		
 def create_order(order):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
-	create_salse_order(order, shopify_settings)
+	so = create_salse_order(order, shopify_settings)
 	if order.get("fulfillments"):
-		create_delivery_note(order, shopify_settings)
+		create_delivery_note(order, shopify_settings, so)
 
 def create_salse_order(order, shopify_settings):
-	frappe.get_doc({
+	so = frappe.get_doc({
 		"doctype": "Sales Order",
 		"id": order.get("id"),
 		"customer": frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"),
@@ -320,12 +319,26 @@ def create_salse_order(order, shopify_settings):
 		"ignore_pricing_rule": 1,
 		"items": get_item_line(order.get("line_items"), shopify_settings),
 		"taxes": get_tax_line(order.get("tax_lines"), shopify_settings)
-	}).submit()
+	}).insert()
 	
-def create_delivery_note(oerder, shopify_settings):pass
+	so.submit()
+	return so
+	
+def create_delivery_note(order, shopify_settings, so):	
+	for fulfillment in order.get("fulfillments"):
+		if not frappe.db.get_value("Delivery Note", {"id": fulfillment.get("id")}, "name"):
+			dn = make_delivery_note(so.name)
+			dn.id = fulfillment.get("id")
+			update_items_qty(dn.items, fulfillment.get("line_items"), shopify_settings)
+			dn.save()
 
+def update_items_qty(dn_items, fulfillment_items, shopify_settings):
+	reconcilation_items = []
+	for i, item in enumerate(fulfillment_items):
+		dn_items[i].update({"qty": item.get("quantity")})
+		
 def get_item_line(order_items, shopify_settings):
-	items, reconcilation_items = [], []
+	items = []
 	for item in order_items:
 		item_code = get_item_code(item)
 		items.append({
@@ -337,27 +350,7 @@ def get_item_line(order_items, shopify_settings):
 			"warehouse": shopify_settings.warehouse
 		})
 		
-		check_for_item_stock(item_code, item.get("quantity"), item.get("price"), shopify_settings.warehouse, reconcilation_items)
-		
-	create_reconcilation_entry(reconcilation_items)
 	return items
-
-def check_for_item_stock(item_code, qty, price, warehouse, reconcilation_items):
-	actual_qty = frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty")
-	if flt(actual_qty) < flt(qty):
-		reconcilation_items.append({
-			"item_code": item_code,
-			"warehouse": warehouse,
-			"qty": (flt(actual_qty) + flt(qty)),
-			"valuation_rate": (flt(price) * flt(qty))
-		})
-	
-def create_reconcilation_entry(reconcilation_items):
-	frappe.errprint(reconcilation_items)
-	frappe.get_doc({
-		"doctype": "Stock Reconciliation",
-		"items": reconcilation_items
-	}).submit()
 	
 def get_item_code(item):
 	item_code = frappe.db.get_value("Item", {"id": item.get("variant_id")}, "item_code")
@@ -378,26 +371,3 @@ def get_tax_line(tax_line, shopify_settings):
 		})
 	
 	return taxes
-			
-def delete_webhooks():
-	webhooks = get_webhooks()
-	for webhook in webhooks:
-		delete_request("/admin/webhooks/{}.json".format(webhook['id']))
-
-def get_webhooks():
-	webhooks = get_request("/admin/webhooks.json")
-	return webhooks["webhooks"]
-	
-def create_webhooks():
-	for event in ["orders/create", "orders/delete", "orders/updated", "orders/paid", "orders/cancelled", "orders/fulfilled", 
-					"orders/partially_fulfilled", "order_transactions/create", "carts/create", "carts/update", 
-					"checkouts/create", "checkouts/update", "checkouts/delete", "refunds/create", "products/create", 
-					"products/update", "products/delete", "collections/create", "collections/update", "collections/delete", 
-					"customer_groups/create", "customer_groups/update", "customer_groups/delete", "customers/create", 
-					"customers/enable", "customers/disable", "customers/update", "customers/delete", "fulfillments/create", 
-					"fulfillments/update", "shop/update", "disputes/create", "disputes/update", "app/uninstalled", 
-					"channels/delete", "product_publications/create", "product_publications/update", 
-					"product_publications/delete", "collection_publications/create", "collection_publications/update", 
-					"collection_publications/delete", "variants/in_stock", "variants/out_of_stock"]:
-					
-		create_webhook(event, "http://demo.healthsnapp.com/")
