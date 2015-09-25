@@ -54,23 +54,24 @@ def create_attribute(item):
 			}).insert()
 		else:
 			"check for attribute values"
+			frappe.errprint(attr.get("name"))
 			item_attr = frappe.get_doc("Item Attribute", attr.get("name"))
-			new_attribute_values = get_new_attribute_values(item_attr.item_attribute_values, attr.get("values"))
-			item_attr.item_attribute_values.extend(new_attribute_values)
+			frappe.errprint(item_attr)
+			get_new_attribute_values(item_attr.item_attribute_values, attr.get("values"))
+			# item_attr.item_attribute_values.extend(new_attribute_values)
+			frappe.errprint(item_attr.item_attribute_values)
 			item_attr.save()
 		
 		attribute.append({"attribute": attr.get("name")})
 	return attribute
 	
 def get_new_attribute_values(item_attribute_values, values):
-	attr_values = []
 	for attr_value in values:
 		if not any(d.attribute_value == attr_value for d in item_attribute_values):
-			attr_values.append({
+			item_attribute_values.append({
 				"attribute_value": attr_value,
 				"abbr": cstr(attr_value)[:3]
 			})
-	return attr_values	
 	
 def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 	item_name = frappe.get_doc({
