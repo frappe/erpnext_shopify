@@ -78,23 +78,11 @@ fixtures = ["Custom Field"]
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"erpnext_shopify.tasks.all"
-# 	],
-# 	"daily": [
-# 		"erpnext_shopify.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"erpnext_shopify.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"erpnext_shopify.tasks.weekly"
-# 	]
-# 	"monthly": [
-# 		"erpnext_shopify.tasks.monthly"
-# 	]
-# }
+scheduler_events = {
+	"hourly": [
+		"erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify"
+	]
+}
 
 # Testing
 # -------

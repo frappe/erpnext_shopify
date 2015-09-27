@@ -13,14 +13,16 @@ from erpnext_shopify.utils import get_request, get_shopify_customers, get_addres
 
 shopify_variants_attr_list = ["option1", "option2", "option3"] 
 
-class ShopifySettings(Document):
-	def sync_shopify(self):
-		if self.enable_shopify:
-			sync_products(self.price_list, self.warehouse)
-			sync_customers()
-			sync_orders()
-			frappe.msgprint("Customers Sync")
-		
+class ShopifySettings(Document):pass		
+
+@frappe.whitelist()	
+def sync_shopify():
+	sopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+	if sopify_settings.enable_shopify:
+		sync_products(sopify_settings.price_list, sopify_settings.warehouse)
+		sync_customers()
+		sync_orders()
+
 def sync_products(price_list, warehouse):
 	sync_shopify_items(warehouse)
 	sync_erp_items(price_list, warehouse)
@@ -52,23 +54,20 @@ def create_attribute(item):
 				"attribute_name": attr.get("name"),
 				"item_attribute_values": [{"attribute_value":attr_value, "abbr": cstr(attr_value)[:3]} for attr_value in attr.get("values")]
 			}).insert()
+			
 		else:
 			"check for attribute values"
-			frappe.errprint(attr.get("name"))
 			item_attr = frappe.get_doc("Item Attribute", attr.get("name"))
-			frappe.errprint(item_attr)
-			get_new_attribute_values(item_attr.item_attribute_values, attr.get("values"))
-			# item_attr.item_attribute_values.extend(new_attribute_values)
-			frappe.errprint(item_attr.item_attribute_values)
+			set_new_attribute_values(item_attr, attr.get("values"))
 			item_attr.save()
 		
 		attribute.append({"attribute": attr.get("name")})
 	return attribute
 	
-def get_new_attribute_values(item_attribute_values, values):
+def set_new_attribute_values(item_attr, values):
 	for attr_value in values:
-		if not any(d.attribute_value == attr_value for d in item_attribute_values):
-			item_attribute_values.append({
+		if not any(d.attribute_value == attr_value for d in item_attr.item_attribute_values):
+			item_attr.append("item_attribute_values", {
 				"attribute_value": attr_value,
 				"abbr": cstr(attr_value)[:3]
 			})
@@ -87,14 +86,13 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 		"stock_uom": item.get("uom") or get_stock_uom(item), 
 		"default_warehouse": warehouse
 	}).insert()
-	
 	if not has_variant:
 		add_to_price_list(item)
 
 def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list):
 	for variant in item.get("variants"):
 		variant_item = {
-			"id" : variant.get("product_id"),
+			"id" : variant.get("id"),
 			"item_code": variant.get("id"),
 			"title": item.get("title"),
 			"product_type": item.get("product_type"),
@@ -288,9 +286,8 @@ def sync_orders():
 
 def sync_shopify_orders():
 	for order in get_shopify_orders():
-		if not frappe.db.get_value("Sales Order", {"id": order.get("id")}, "name"):
-			validate_customer_and_product(order)
-			create_order(order)
+		validate_customer_and_product(order)
+		create_order(order)
 
 def validate_customer_and_product(order):
 	if not frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"):
@@ -311,33 +308,38 @@ def create_order(order):
 		create_delivery_note(order, shopify_settings, so)
 
 def create_salse_order(order, shopify_settings):
-	so = frappe.get_doc({
-		"doctype": "Sales Order",
-		"id": order.get("id"),
-		"customer": frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"),
-		"delivery_date": nowdate(),
-		"selling_price_list": shopify_settings.price_list,
-		"ignore_pricing_rule": 1,
-		"items": get_item_line(order.get("line_items"), shopify_settings),
-		"taxes": get_tax_line(order.get("tax_lines"), shopify_settings)
-	}).insert()
+	so = frappe.db.get_value("Sales Order", {"id": order.get("id")}, "name")
+	if not so:
+		so = frappe.get_doc({
+			"doctype": "Sales Order",
+			"id": order.get("id"),
+			"customer": frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"),
+			"delivery_date": nowdate(),
+			"selling_price_list": shopify_settings.price_list,
+			"ignore_pricing_rule": 1,
+			"items": get_item_line(order.get("line_items"), shopify_settings),
+			"taxes": get_tax_line(order.get("tax_lines"), shopify_settings)
+		}).insert()
 	
-	so.submit()
+		so.submit()
+	
+	else:
+		so = frappe.get_doc("Sales Order", so)
+	
 	return so
 	
 def create_delivery_note(order, shopify_settings, so):	
 	for fulfillment in order.get("fulfillments"):
-		if not frappe.db.get_value("Delivery Note", {"id": fulfillment.get("id")}, "name"):
+		if not frappe.db.get_value("Delivery Note", {"id": fulfillment.get("id")}, "name") and so.docstatus==1:
 			dn = make_delivery_note(so.name)
 			dn.id = fulfillment.get("id")
-			update_items_qty(dn.items, fulfillment.get("line_items"), shopify_settings)
+			dn.items = update_items_qty(dn.items, fulfillment.get("line_items"), shopify_settings)
 			dn.save()
 
 def update_items_qty(dn_items, fulfillment_items, shopify_settings):
-	reconcilation_items = []
-	for i, item in enumerate(fulfillment_items):
-		dn_items[i].update({"qty": item.get("quantity")})
-		
+	return [dn_item.update({"qty": item.get("quantity")}) for item in fulfillment_items for dn_item in dn_items\
+		 if get_item_code(item) == dn_item.item_code]
+	
 def get_item_line(order_items, shopify_settings):
 	items = []
 	for item in order_items:
@@ -350,7 +352,6 @@ def get_item_line(order_items, shopify_settings):
 			"stock_uom": item.get("sku"),
 			"warehouse": shopify_settings.warehouse
 		})
-		
 	return items
 	
 def get_item_code(item):
