@@ -35,7 +35,6 @@ def shopify_webhook(f):
 	"""
  
 	def _hmac_is_valid(body, secret, hmac_to_verify):
-		# secret = "62ec6a7130f5d1fff0fb56bc9b322bab"
 		secret = str(secret)
 		hash = hmac.new(secret, body, hashlib.sha256)
 		hmac_calculated = base64.b64encode(hash.digest())
@@ -78,27 +77,41 @@ def get_shopify_settings():
 	return d.as_dict()
 	
 def get_request(path):
-	settings = get_shopify_settings()
 	s = get_request_session()
-	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
-	r = s.get(url)
+	url = get_shopify_url(path)
+	r = s.get(url, headers=get_header())
 	r.raise_for_status()
 	return r.json()
 	
 def post_request(path, data):
-	settings = get_shopify_settings()
 	s = get_request_session()
-	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
-	r = s.post(url, data=json.dumps(data), headers={'Content-type': 'application/json'})
+	url = get_shopify_url(path)
+	r = s.post(url, data=json.dumps(data), headers=get_header())
 	r.raise_for_status()
 	return r.json()
 
 def delete_request(path):
-	settings = get_shopify_settings()
 	s = get_request_session()
-	url = 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
+	url = get_shopify_url(path)
 	r = s.delete(url)
 	r.raise_for_status()
+
+def get_shopify_url(path):
+	settings = get_shopify_settings()
+	if settings['app_type'] == "Private":
+		return 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
+	else:
+		return 'https://{}/{}'.format(settings['shopify_url'], path)
+		
+def get_header():
+	header = {'Content-type': 'application/json'}
+	settings = get_shopify_settings()
+	
+	if settings['app_type'] == "Private":
+		return header
+	else:
+		header["X-Shopify-Access-Token"] = settings['access_token']
+		return header
 	
 def delete_webhooks():
 	webhooks = get_webhooks()
