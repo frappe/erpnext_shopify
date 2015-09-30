@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, nowtime
-from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
+from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import get_request, get_shopify_customers, get_address_type, post_request,\
  get_shopify_items, get_shopify_orders
 
@@ -304,6 +304,9 @@ def get_id(item):pass
 def create_order(order):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	so = create_salse_order(order, shopify_settings)
+	if order.get("financial_status") == "paid":
+		create_sales_invoice(order, shopify_settings, so)
+		
 	if order.get("fulfillments"):
 		create_delivery_note(order, shopify_settings, so)
 
@@ -327,7 +330,19 @@ def create_salse_order(order, shopify_settings):
 		so = frappe.get_doc("Sales Order", so)
 	
 	return so
-	
+
+def create_sales_invoice(order, shopify_settings, so):
+	sales_invoice = frappe.db.get_value("Sales Order", {"id": order.get("id")},\
+		 ["ifnull(per_billed, '') as per_billed"], as_dict=1)
+		 
+	if not frappe.db.get_value("Sales Invoice", {"id": order.get("id")}, "name") and so.docstatus==1 \
+		and not sales_invoice["per_billed"]:
+		si = make_sales_invoice(so.name)
+		si.id = order.get("id")
+		si.is_pos = 1
+		si.cash_bank_account = shopify_settings.cash_bank_account
+		si.submit()
+
 def create_delivery_note(order, shopify_settings, so):	
 	for fulfillment in order.get("fulfillments"):
 		if not frappe.db.get_value("Delivery Note", {"id": fulfillment.get("id")}, "name") and so.docstatus==1:
