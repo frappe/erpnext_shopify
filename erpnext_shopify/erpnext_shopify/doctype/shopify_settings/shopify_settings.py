@@ -13,22 +13,28 @@ from erpnext_shopify.utils import get_request, get_shopify_customers, get_addres
 
 shopify_variants_attr_list = ["option1", "option2", "option3"] 
 
+class ShopifyError(Exception):pass
+
 class ShopifySettings(Document):pass		
 
 @frappe.whitelist()	
 def sync_shopify():
-	sopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	if not frappe.session.user:
 		user = frappe.db.sql("""select parent from tabUserRole 
 			where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
 		frappe.set_user(user)
 		
-	if sopify_settings.enable_shopify:
-		sync_products(sopify_settings.price_list, sopify_settings.warehouse)
-		sync_customers()
-		sync_orders()
-
+	if shopify_settings.enable_shopify:
+		try :
+			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
+			sync_customers()
+			sync_orders()
+			
+		except ShopifyError:
+			frappe.throw(_("Something went wrong"), ShopifyError)
+			
 def sync_products(price_list, warehouse):
 	sync_shopify_items(warehouse)
 	sync_erp_items(price_list, warehouse)
@@ -149,8 +155,7 @@ def add_to_price_list(item):
 
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group, description, has_variants, stock_uom from tabItem 
-		where sync_with_shopify=1 and variant_of is null and id is null""", as_dict=1):
-		
+		where ifnull(sync_with_shopify, 0)=1 and variant_of is null and id is null""", as_dict=1):
 		variant_item_code_list = []
 		
 		item_data = {
@@ -173,7 +178,6 @@ def sync_erp_items(price_list, warehouse):
 			item_data["product"]["variants"] = get_price_and_stock_details(item, item.get("stock_uom"), warehouse, price_list)
 		
 		new_item = post_request("/admin/products.json", item_data)
-		
 		erp_item = frappe.get_doc("Item", item.get("item_code"))
 		erp_item.id = new_item['product'].get("id")
 		erp_item.save()
@@ -269,7 +273,8 @@ def create_customer_address(erp_cust, customer):
 		}).insert()
 
 def sync_erp_customers():
-	for customer in frappe.db.sql("""select name, customer_name from tabCustomer where ifnull(id, '') = '' """, as_dict=1):
+	for customer in frappe.db.sql("""select name, customer_name from tabCustomer where ifnull(id, '') = '' 
+		and ifnull(sync_with_shopify, 0) = 1 """, as_dict=1):
 		cust = {
 			"first_name": customer['customer_name']
 		}
