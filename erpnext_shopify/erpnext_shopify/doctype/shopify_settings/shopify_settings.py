@@ -18,6 +18,12 @@ class ShopifySettings(Document):pass
 @frappe.whitelist()	
 def sync_shopify():
 	sopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+	
+	if not frappe.session.user:
+		user = frappe.db.sql("""select parent from tabUserRole 
+			where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
+		frappe.set_user(user)
+		
 	if sopify_settings.enable_shopify:
 		sync_products(sopify_settings.price_list, sopify_settings.warehouse)
 		sync_customers()
