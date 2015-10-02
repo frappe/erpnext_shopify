@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cstr, flt, nowdate, nowtime
+from frappe.utils import cstr, flt, nowdate, nowtime, cint
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import get_request, get_shopify_customers, get_address_type, post_request,\
  get_shopify_items, get_shopify_orders
@@ -175,8 +175,8 @@ def sync_erp_items(price_list, warehouse):
 			variant_item_code_list.extend(variant_item_code)
 			
 		else:
-			item_data["product"]["variants"] = get_price_and_stock_details(item, item.get("stock_uom"), warehouse, price_list)
-		
+			item_data["product"]["variants"] = [get_price_and_stock_details(item, item.get("stock_uom"), warehouse, price_list)]
+		frappe.errprint(item_data)
 		new_item = post_request("/admin/products.json", item_data)
 		erp_item = frappe.get_doc("Item", item.get("item_code"))
 		erp_item.id = new_item['product'].get("id")
@@ -222,14 +222,16 @@ def get_variant_attributes(item, price_list, warehouse):
 
 def get_price_and_stock_details(item, uom, warehouse, price_list):
 	qty = frappe.db.get_value("Bin", {"item_code":item.get("item_code"), "warehouse": warehouse}, "actual_qty") 
-	return {
-		"price": frappe.db.get_value("Item Price", \
-			{"price_list": price_list, "item_code":item.get("item_code")}, "price_list_rate"), 
+	price = frappe.db.get_value("Item Price", \
+			{"price_list": price_list, "item_code":item.get("item_code")}, "price_list_rate")
+	dic = {
+		"price": flt(price), 
 		"sku": uom,
-		"inventory_quantity": qty if qty else 0,
+		"inventory_quantity": cint(qty) if qty else 0,
 		"inventory_management": "shopify"
 	}
-
+	frappe.errprint(dic)
+	return dic
 def sync_customers():
 	sync_shopify_customers()
 	sync_erp_customers()
@@ -332,7 +334,7 @@ def create_salse_order(order, shopify_settings):
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
 			"items": get_item_line(order.get("line_items"), shopify_settings),
-			"taxes": get_tax_line(order.get("tax_lines"), shopify_settings)
+			"taxes": get_tax_line(order.get("tax_lines"), order.get("shipping_lines"), shopify_settings)
 		}).insert()
 	
 		so.submit()
@@ -387,15 +389,32 @@ def get_item_code(item):
 	
 	return item_code
 	
-def get_tax_line(tax_line, shopify_settings):
+def get_tax_line(tax_lines, shipping_lines, shopify_settings):
 	taxes = []
-	for tax in tax_line:
+	for tax in tax_lines:
 		taxes.append({
 			"charge_type": _("On Net Total"),
-			"account_head": shopify_settings.default_tax_account,
+			"account_head": get_tax_account_head(tax),
 			"description": tax.get("title") + "-" + cstr(tax.get("rate") * 100.00),
 			"rate": tax.get("rate") * 100.00,
 			"included_in_print_rate": 1
 		})
 	
+	taxes = update_taxes_with_shipping_rule(taxes, shipping_lines)
+	
 	return taxes
+	
+def update_taxes_with_shipping_rule(taxes, shipping_lines):
+	for shipping_rule in shipping_lines:
+		taxes.append({
+			"charge_type": _("Actual"),
+			"account_head": get_tax_account_head(shipping_rule),
+			"description": shipping_rule["title"],
+			"tax_amount": shipping_rule["price"]
+		})
+		
+	return taxes
+	
+def get_tax_account_head(tax):
+	return frappe.db.get_value("Shopify Tax Mapper", \
+		{"parent": "Shopify Settings", "shopify_tax": tax.get("title")}, "tax_accout")
