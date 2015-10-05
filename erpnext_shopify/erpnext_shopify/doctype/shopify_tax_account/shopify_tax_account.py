@@ -6,5 +6,5 @@ from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
 
-class ShopifyTaxMapper(Document):
+class ShopifyTaxAccount(Document):
 	pass

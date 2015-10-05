@@ -1,4 +1,4 @@
-cur_frm.fields_dict["tax_mapper"].grid.get_field("tax_accout").get_query = function(doc, dt, dn){
+cur_frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(doc, dt, dn){
 	return {
 		"query": "erpnext.controllers.queries.tax_account_query",
 		"filters": {

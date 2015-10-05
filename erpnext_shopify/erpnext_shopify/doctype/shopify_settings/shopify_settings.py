@@ -33,15 +33,14 @@ def sync_shopify():
 			sync_orders()
 			
 		except ShopifyError:
-			frappe.throw(_("Something went wrong"), ShopifyError)
-			
+			pass			
 def sync_products(price_list, warehouse):
 	sync_shopify_items(warehouse)
 	sync_erp_items(price_list, warehouse)
 
 def sync_shopify_items(warehouse):
 	for item in get_shopify_items():
-		if not frappe.db.get_value("Item", {"id": item.get("id")}, "name"):
+		if not frappe.db.get_value("Item", {"shopify_id": item.get("id")}, "name"):
 			make_item(warehouse, item)
 
 def make_item(warehouse, item):
@@ -85,9 +84,10 @@ def set_new_attribute_values(item_attr, values):
 			})
 	
 def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
+	frappe.errprint([item])
 	item_name = frappe.get_doc({
 		"doctype": "Item",
-		"id": item.get("id"),
+		"shopify_id": item.get("id"),
 		"variant_of": variant_of,
 		"item_code": cstr(item.get("item_code")) or cstr(item.get("id")),
 		"item_name": item.get("title"),
@@ -104,7 +104,7 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list):
 	for variant in item.get("variants"):
 		variant_item = {
-			"id" : variant.get("id"),
+			"shopify_id" : variant.get("id"),
 			"item_code": variant.get("id"),
 			"title": item.get("title"),
 			"product_type": item.get("product_type"),
@@ -155,7 +155,7 @@ def add_to_price_list(item):
 
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group, description, has_variants, stock_uom from tabItem 
-		where ifnull(sync_with_shopify, 0)=1 and variant_of is null and id is null""", as_dict=1):
+		where ifnull(sync_with_shopify, 0)=1 and variant_of is null and shopify_id is null""", as_dict=1):
 		variant_item_code_list = []
 		
 		item_data = {
@@ -176,10 +176,9 @@ def sync_erp_items(price_list, warehouse):
 			
 		else:
 			item_data["product"]["variants"] = [get_price_and_stock_details(item, item.get("stock_uom"), warehouse, price_list)]
-		frappe.errprint(item_data)
 		new_item = post_request("/admin/products.json", item_data)
 		erp_item = frappe.get_doc("Item", item.get("item_code"))
-		erp_item.id = new_item['product'].get("id")
+		erp_item.shopify_id = new_item['product'].get("id")
 		erp_item.save()
 
 		update_variant_item(new_item, variant_item_code_list)
@@ -187,7 +186,7 @@ def sync_erp_items(price_list, warehouse):
 def update_variant_item(new_item, item_code_list):
 	for i, item_code in enumerate(item_code_list):
 		erp_item = frappe.get_doc("Item", item_code)
-		erp_item.id = new_item['product']["variants"][i].get("id")
+		erp_item.shopify_id = new_item['product']["variants"][i].get("id")
 		erp_item.save()
 			
 def get_variant_attributes(item, price_list, warehouse):
@@ -224,37 +223,44 @@ def get_price_and_stock_details(item, uom, warehouse, price_list):
 	qty = frappe.db.get_value("Bin", {"item_code":item.get("item_code"), "warehouse": warehouse}, "actual_qty") 
 	price = frappe.db.get_value("Item Price", \
 			{"price_list": price_list, "item_code":item.get("item_code")}, "price_list_rate")
-	dic = {
+			
+	item_price_and_quantity = {
 		"price": flt(price), 
 		"sku": uom,
 		"inventory_quantity": cint(qty) if qty else 0,
 		"inventory_management": "shopify"
 	}
-	frappe.errprint(dic)
-	return dic
+	
+	return item_price_and_quantity
+	
 def sync_customers():
 	sync_shopify_customers()
 	sync_erp_customers()
 
 def sync_shopify_customers():
 	for customer in get_shopify_customers():
-		if not frappe.db.get_value("Customer", {"id": customer.get('id')}, "name"):
+		if not frappe.db.get_value("Customer", {"shopify_id": customer.get('id')}, "name"):
 			create_customer(customer)
 
 def create_customer(customer):
+	erp_cust = None
 	cust_name = (customer.get("first_name") + " " + (customer.get("last_name") and  customer.get("last_name") or ""))\
 		if customer.get("first_name") else customer.get("email")
 	
-	erp_cust = frappe.get_doc({
-		"doctype": "Customer",
-		"customer_name" : cust_name,
-		"id": customer.get("id"),
-		"customer_group": "Commercial",
-		"territory": "All Territories",
-		"customer_type": "Company"
-	}).insert()
+	try:
+		erp_cust = frappe.get_doc({
+			"doctype": "Customer",
+			"customer_name" : cust_name,
+			"shopify_id": customer.get("id"),
+			"customer_group": "Commercial",
+			"territory": "All Territories",
+			"customer_type": "Company"
+		}).insert()
+	except:
+		pass
 	
-	create_customer_address(erp_cust, customer)
+	if erp_cust:
+		create_customer_address(erp_cust, customer)
 
 def create_customer_address(erp_cust, customer):
 	for i, address in enumerate(customer.get("addresses")):
@@ -275,7 +281,7 @@ def create_customer_address(erp_cust, customer):
 		}).insert()
 
 def sync_erp_customers():
-	for customer in frappe.db.sql("""select name, customer_name from tabCustomer where ifnull(id, '') = '' 
+	for customer in frappe.db.sql("""select name, customer_name from tabCustomer where ifnull(shopify_id, '') = '' 
 		and ifnull(sync_with_shopify, 0) = 1 """, as_dict=1):
 		cust = {
 			"first_name": customer['customer_name']
@@ -291,7 +297,7 @@ def sync_erp_customers():
 		cust = post_request("/admin/customers.json", { "customer": cust})
 
 		customer = frappe.get_doc("Customer", customer['name'])
-		customer.id = cust['customer'].get("id")
+		customer.shopify_id = cust['customer'].get("id")
 		customer.save()
 
 def sync_orders():
@@ -303,16 +309,16 @@ def sync_shopify_orders():
 		create_order(order)
 
 def validate_customer_and_product(order):
-	if not frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"):
+	if not frappe.db.get_value("Customer", {"shopify_id": order.get("customer").get("id")}, "name"):
 		create_customer(order.get("customer"))
 	
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in order.get("line_items"):
-		if not frappe.db.get_value("Item", {"id": item.get("product_id")}, "name"):
+		if not frappe.db.get_value("Item", {"shopify_id": item.get("product_id")}, "name"):
 			item = get_request("/admin/products/{}.json".format(item.get("product_id")))["product"]
 			make_item(warehouse, item)
 
-def get_id(item):pass
+def get_shopify_id(item):pass
 		
 def create_order(order):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
@@ -324,12 +330,12 @@ def create_order(order):
 		create_delivery_note(order, shopify_settings, so)
 
 def create_salse_order(order, shopify_settings):
-	so = frappe.db.get_value("Sales Order", {"id": order.get("id")}, "name")
+	so = frappe.db.get_value("Sales Order", {"shopify_id": order.get("id")}, "name")
 	if not so:
 		so = frappe.get_doc({
 			"doctype": "Sales Order",
-			"id": order.get("id"),
-			"customer": frappe.db.get_value("Customer", {"id": order.get("customer").get("id")}, "name"),
+			"shopify_id": order.get("id"),
+			"customer": frappe.db.get_value("Customer", {"shopify_id": order.get("customer").get("id")}, "name"),
 			"delivery_date": nowdate(),
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
@@ -345,22 +351,22 @@ def create_salse_order(order, shopify_settings):
 	return so
 
 def create_sales_invoice(order, shopify_settings, so):
-	sales_invoice = frappe.db.get_value("Sales Order", {"id": order.get("id")},\
+	sales_invoice = frappe.db.get_value("Sales Order", {"shopify_id": order.get("id")},\
 		 ["ifnull(per_billed, '') as per_billed"], as_dict=1)
 		 
-	if not frappe.db.get_value("Sales Invoice", {"id": order.get("id")}, "name") and so.docstatus==1 \
+	if not frappe.db.get_value("Sales Invoice", {"shopify_id": order.get("id")}, "name") and so.docstatus==1 \
 		and not sales_invoice["per_billed"]:
 		si = make_sales_invoice(so.name)
-		si.id = order.get("id")
+		si.shopify_id = order.get("id")
 		si.is_pos = 1
 		si.cash_bank_account = shopify_settings.cash_bank_account
 		si.submit()
 
 def create_delivery_note(order, shopify_settings, so):	
 	for fulfillment in order.get("fulfillments"):
-		if not frappe.db.get_value("Delivery Note", {"id": fulfillment.get("id")}, "name") and so.docstatus==1:
+		if not frappe.db.get_value("Delivery Note", {"shopify_id": fulfillment.get("id")}, "name") and so.docstatus==1:
 			dn = make_delivery_note(so.name)
-			dn.id = fulfillment.get("id")
+			dn.shopify_id = fulfillment.get("id")
 			dn.items = update_items_qty(dn.items, fulfillment.get("line_items"), shopify_settings)
 			dn.save()
 
@@ -383,9 +389,9 @@ def get_item_line(order_items, shopify_settings):
 	return items
 	
 def get_item_code(item):
-	item_code = frappe.db.get_value("Item", {"id": item.get("variant_id")}, "item_code")
+	item_code = frappe.db.get_value("Item", {"shopify_id": item.get("variant_id")}, "item_code")
 	if not item_code:
-		item_code = frappe.db.get_value("Item", {"id": item.get("product_id")}, "item_code")
+		item_code = frappe.db.get_value("Item", {"shopify_id": item.get("product_id")}, "item_code")
 	
 	return item_code
 	
@@ -405,16 +411,21 @@ def get_tax_line(tax_lines, shipping_lines, shopify_settings):
 	return taxes
 	
 def update_taxes_with_shipping_rule(taxes, shipping_lines):
-	for shipping_rule in shipping_lines:
+	for shipping_charge in shipping_lines:
 		taxes.append({
 			"charge_type": _("Actual"),
-			"account_head": get_tax_account_head(shipping_rule),
-			"description": shipping_rule["title"],
-			"tax_amount": shipping_rule["price"]
+			"account_head": get_tax_account_head(shipping_charge),
+			"description": shipping_charge["title"],
+			"tax_amount": shipping_charge["price"]
 		})
 		
 	return taxes
 	
 def get_tax_account_head(tax):
-	return frappe.db.get_value("Shopify Tax Mapper", \
-		{"parent": "Shopify Settings", "shopify_tax": tax.get("title")}, "tax_accout")
+	tax_account =  frappe.db.get_value("Shopify Tax Account", \
+		{"parent": "Shopify Settings", "shopify_tax": tax.get("title")}, "tax_account")
+	
+	if not tax_account:
+		raise "Tax Account not specified for Shopify Tax {}".format(tax.get("title"))
+	
+	return tax_account
