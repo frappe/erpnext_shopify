@@ -17,7 +17,7 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 	if(!frm.doc.__islocal){
 		frm.toggle_reqd("price_list", true);
 		frm.toggle_reqd("warehouse", true);
-		frm.toggle_reqd("tax_mapper", true);
+		frm.toggle_reqd("taxes", true);
 		frm.toggle_reqd("cash_bank_account", true);
 		
 		cur_frm.add_custom_button(__('Sync Shopify'),
