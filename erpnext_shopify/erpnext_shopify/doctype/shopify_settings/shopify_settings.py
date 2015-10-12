@@ -77,14 +77,13 @@ def create_attribute(item):
 	
 def set_new_attribute_values(item_attr, values):
 	for attr_value in values:
-		if not any(d.attribute_value == attr_value for d in item_attr.item_attribute_values):
+		if not any((d.abbr == attr_value or d.attribute_value == attr_value) for d in item_attr.item_attribute_values):
 			item_attr.append("item_attribute_values", {
 				"attribute_value": attr_value,
 				"abbr": cstr(attr_value)[:3]
 			})
 	
 def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
-	frappe.errprint([item])
 	item_name = frappe.get_doc({
 		"doctype": "Item",
 		"shopify_id": item.get("id"),
@@ -104,7 +103,7 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list):
 	for variant in item.get("variants"):
 		variant_item = {
-			"shopify_id" : variant.get("id"),
+			"id" : variant.get("id"),
 			"item_code": variant.get("id"),
 			"title": item.get("title"),
 			"product_type": item.get("product_type"),
@@ -114,9 +113,14 @@ def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list
 		
 		for i, variant_attr in enumerate(shopify_variants_attr_list):
 			if variant.get(variant_attr):
-				attributes[i].update({"attribute_value": variant.get(variant_attr)})
+				attributes[i].update({"attribute_value": get_attribute_value(variant.get(variant_attr), attributes[i])})
 		
 		create_item(variant_item, warehouse, 0, attributes, cstr(item.get("id")))
+		
+def get_attribute_value(variant_attr_val, attribute):
+	return frappe.db.sql("""select attribute_value from `tabItem Attribute Value` 
+		where parent = '{0}' and (abbr = '{1}' or attribute_value = '{2}')""".format(attribute["attribute"], variant_attr_val,
+		variant_attr_val))[0][0]
 
 def get_item_group(product_type=None):
 	if product_type:
@@ -340,7 +344,7 @@ def create_salse_order(order, shopify_settings):
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
 			"items": get_item_line(order.get("line_items"), shopify_settings),
-			"taxes": get_tax_line(order.get("tax_lines"), order.get("shipping_lines"), shopify_settings)
+			"taxes": get_tax_line(order, order.get("shipping_lines"), shopify_settings)
 		}).insert()
 	
 		so.submit()
@@ -395,21 +399,27 @@ def get_item_code(item):
 	
 	return item_code
 	
-def get_tax_line(tax_lines, shipping_lines, shopify_settings):
+def get_tax_line(order, shipping_lines, shopify_settings):
 	taxes = []
-	for tax in tax_lines:
+	for tax in order.get("tax_lines"):
 		taxes.append({
 			"charge_type": _("On Net Total"),
 			"account_head": get_tax_account_head(tax),
 			"description": tax.get("title") + "-" + cstr(tax.get("rate") * 100.00),
 			"rate": tax.get("rate") * 100.00,
-			"included_in_print_rate": 1
+			"included_in_print_rate": set_included_in_print_rate(order) 
 		})
 	
 	taxes = update_taxes_with_shipping_rule(taxes, shipping_lines)
 	
 	return taxes
-	
+
+def set_included_in_print_rate(order):
+	if order.get("total_tax"): 
+		if (flt(order.get("total_price")) - flt(order.get("total_line_items_price"))) == 0.0:
+			return 1
+	return 0
+			
 def update_taxes_with_shipping_rule(taxes, shipping_lines):
 	for shipping_charge in shipping_lines:
 		taxes.append({
