@@ -107,7 +107,7 @@ def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list
 			"item_code": variant.get("id"),
 			"title": item.get("title"),
 			"product_type": item.get("product_type"),
-			"uom": variant.get("sku"),
+			"uom": get_stock_uom(item),
 			"item_price": variant.get("price")
 		}
 		
