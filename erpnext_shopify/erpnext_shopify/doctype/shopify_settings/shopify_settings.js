@@ -8,6 +8,20 @@ cur_frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(
 	}
 }
 
+frappe.ui.form.on("Shopify Settings", "onload", function(frm, dt, dn){
+	if(frm.doc.__onload){
+		if(frm.doc.__onload.sales_order_series) {
+			frm.fields_dict.sales_order_series.df.options = frm.doc.__onload.sales_order_series;
+		}
+		if(frm.doc.__onload.sales_invoice_series) {
+			frm.fields_dict.sales_invoice_series.df.options = frm.doc.__onload.sales_invoice_series;
+		}
+		if(frm.doc.__onload.delivery_note_series) {
+			frm.fields_dict.delivery_note_series.df.options = frm.doc.__onload.delivery_note_series;
+		}
+	} 
+})
+
 frappe.ui.form.on("Shopify Settings", "app_type", function(frm, dt, dn) { 
 	frm.toggle_reqd("api_key", (frm.doc.app_type == "Private"));
 	frm.toggle_reqd("password", (frm.doc.app_type == "Private"));
@@ -19,6 +33,9 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 		frm.toggle_reqd("warehouse", true);
 		frm.toggle_reqd("taxes", true);
 		frm.toggle_reqd("cash_bank_account", true);
+		frm.toggle_reqd("sales_order_series", true);
+		frm.toggle_reqd("sales_invoice_series", true);
+		frm.toggle_reqd("delivery_note_series", true);
 		
 		cur_frm.add_custom_button(__('Sync Shopify'),
 			function() {  

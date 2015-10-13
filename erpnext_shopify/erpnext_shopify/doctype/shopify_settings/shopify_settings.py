@@ -15,7 +15,12 @@ shopify_variants_attr_list = ["option1", "option2", "option3"]
 
 class ShopifyError(Exception):pass
 
-class ShopifySettings(Document):pass		
+class ShopifySettings(Document):
+	def onload(self):
+		self.get("__onload").sales_order_series = frappe.get_meta("Sales Order").get_options("naming_series")
+		self.get("__onload").sales_invoice_series = frappe.get_meta("Sales Invoice").get_options("naming_series")
+		self.get("__onload").delivery_note_series = frappe.get_meta("Delivery Note").get_options("naming_series")
+
 
 @frappe.whitelist()	
 def sync_shopify():
@@ -254,6 +259,7 @@ def create_customer(customer):
 	try:
 		erp_cust = frappe.get_doc({
 			"doctype": "Customer",
+			"name": customer.get("id"),
 			"customer_name" : cust_name,
 			"shopify_id": customer.get("id"),
 			"customer_group": "Commercial",
@@ -338,11 +344,14 @@ def create_salse_order(order, shopify_settings):
 	if not so:
 		so = frappe.get_doc({
 			"doctype": "Sales Order",
+			"naming_series": shopify_settings.sales_order_series or "SO-Sopify-",
 			"shopify_id": order.get("id"),
 			"customer": frappe.db.get_value("Customer", {"shopify_id": order.get("customer").get("id")}, "name"),
 			"delivery_date": nowdate(),
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
+			"apply_discount_on": "Net Total",
+			"discount_amount": get_discounted_amount(order),
 			"items": get_item_line(order.get("line_items"), shopify_settings),
 			"taxes": get_tax_line(order, order.get("shipping_lines"), shopify_settings)
 		}).insert()
@@ -362,6 +371,7 @@ def create_sales_invoice(order, shopify_settings, so):
 		and not sales_invoice["per_billed"]:
 		si = make_sales_invoice(so.name)
 		si.shopify_id = order.get("id")
+		si.naming_series = shopify_settings.sales_invoice_series or "SI-Sopify-"
 		si.is_pos = 1
 		si.cash_bank_account = shopify_settings.cash_bank_account
 		si.submit()
@@ -371,13 +381,20 @@ def create_delivery_note(order, shopify_settings, so):
 		if not frappe.db.get_value("Delivery Note", {"shopify_id": fulfillment.get("id")}, "name") and so.docstatus==1:
 			dn = make_delivery_note(so.name)
 			dn.shopify_id = fulfillment.get("id")
+			dn.naming_series = shopify_settings.delivery_note_series or "DN-Sopify-"
 			dn.items = update_items_qty(dn.items, fulfillment.get("line_items"), shopify_settings)
 			dn.save()
 
 def update_items_qty(dn_items, fulfillment_items, shopify_settings):
 	return [dn_item.update({"qty": item.get("quantity")}) for item in fulfillment_items for dn_item in dn_items\
 		 if get_item_code(item) == dn_item.item_code]
-	
+
+def get_discounted_amount(order):
+	discounted_amount = 0.0
+	for discount in order.get("discount_codes"):
+		discounted_amount += flt(discount.get("amount"))
+	return discounted_amount
+		
 def get_item_line(order_items, shopify_settings):
 	items = []
 	for item in order_items:
