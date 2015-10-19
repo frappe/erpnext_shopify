@@ -15,12 +15,15 @@ shopify_variants_attr_list = ["option1", "option2", "option3"]
 
 class ShopifyError(Exception):pass
 
-class ShopifySettings(Document):
-	def onload(self):
-		self.get("__onload").sales_order_series = frappe.get_meta("Sales Order").get_options("naming_series")
-		self.get("__onload").sales_invoice_series = frappe.get_meta("Sales Invoice").get_options("naming_series")
-		self.get("__onload").delivery_note_series = frappe.get_meta("Delivery Note").get_options("naming_series")
-
+class ShopifySettings(Document): pass
+	
+@frappe.whitelist()
+def get_series():
+		return {
+			"sales_order_series" : frappe.get_meta("Sales Order").get_options("naming_series"),
+			"sales_invoice_series" : frappe.get_meta("Sales Invoice").get_options("naming_series"),
+			"delivery_note_series" : frappe.get_meta("Delivery Note").get_options("naming_series")
+		}
 
 @frappe.whitelist()	
 def sync_shopify():
@@ -344,7 +347,7 @@ def create_salse_order(order, shopify_settings):
 	if not so:
 		so = frappe.get_doc({
 			"doctype": "Sales Order",
-			"naming_series": shopify_settings.sales_order_series or "SO-Sopify-",
+			"naming_series": shopify_settings.sales_order_series or "SO-Shopify-",
 			"shopify_id": order.get("id"),
 			"customer": frappe.db.get_value("Customer", {"shopify_id": order.get("customer").get("id")}, "name"),
 			"delivery_date": nowdate(),
@@ -371,7 +374,7 @@ def create_sales_invoice(order, shopify_settings, so):
 		and not sales_invoice["per_billed"]:
 		si = make_sales_invoice(so.name)
 		si.shopify_id = order.get("id")
-		si.naming_series = shopify_settings.sales_invoice_series or "SI-Sopify-"
+		si.naming_series = shopify_settings.sales_invoice_series or "SI-Shopify-"
 		si.is_pos = 1
 		si.cash_bank_account = shopify_settings.cash_bank_account
 		si.submit()
@@ -381,7 +384,7 @@ def create_delivery_note(order, shopify_settings, so):
 		if not frappe.db.get_value("Delivery Note", {"shopify_id": fulfillment.get("id")}, "name") and so.docstatus==1:
 			dn = make_delivery_note(so.name)
 			dn.shopify_id = fulfillment.get("id")
-			dn.naming_series = shopify_settings.delivery_note_series or "DN-Sopify-"
+			dn.naming_series = shopify_settings.delivery_note_series or "DN-Shopify-"
 			dn.items = update_items_qty(dn.items, fulfillment.get("line_items"), shopify_settings)
 			dn.save()
 

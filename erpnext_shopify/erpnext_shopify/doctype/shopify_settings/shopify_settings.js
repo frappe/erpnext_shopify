@@ -9,17 +9,14 @@ cur_frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(
 }
 
 frappe.ui.form.on("Shopify Settings", "onload", function(frm, dt, dn){
-	if(frm.doc.__onload){
-		if(frm.doc.__onload.sales_order_series) {
-			frm.fields_dict.sales_order_series.df.options = frm.doc.__onload.sales_order_series;
+	frappe.call({
+		method:"erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_series",
+		callback:function(r){
+			set_field_options('sales_order_series', r.message["sales_order_series"])
+			set_field_options('sales_invoice_series', r.message["sales_invoice_series"])
+			set_field_options('delivery_note_series', r.message["delivery_note_series"])
 		}
-		if(frm.doc.__onload.sales_invoice_series) {
-			frm.fields_dict.sales_invoice_series.df.options = frm.doc.__onload.sales_invoice_series;
-		}
-		if(frm.doc.__onload.delivery_note_series) {
-			frm.fields_dict.delivery_note_series.df.options = frm.doc.__onload.delivery_note_series;
-		}
-	} 
+	})
 })
 
 frappe.ui.form.on("Shopify Settings", "app_type", function(frm, dt, dn) { 
