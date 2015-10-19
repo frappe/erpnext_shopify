@@ -12,9 +12,9 @@ frappe.ui.form.on("Shopify Settings", "onload", function(frm, dt, dn){
 	frappe.call({
 		method:"erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_series",
 		callback:function(r){
-			set_field_options('sales_order_series', r.message["sales_order_series"])
-			set_field_options('sales_invoice_series', r.message["sales_invoice_series"])
-			set_field_options('delivery_note_series', r.message["delivery_note_series"])
+			$.each(r.message, function(key, value){
+				set_field_options(key, value)
+			})
 		}
 	})
 })
