@@ -9,8 +9,7 @@ app_icon = "octicon octicon-file-directory"
 app_color = "grey"
 app_email = "info@frappe.io"
 app_version = "1.0.0"
-hide_in_installer = True
-
+app_license = "MIT"
 
 fixtures = ["Custom Field"]
 # Includes in <head>
