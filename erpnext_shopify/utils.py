@@ -98,6 +98,13 @@ def post_request(path, data):
 	r.raise_for_status()
 	return r.json()
 
+def put_request(path, data):
+	s = get_request_session()
+	url = get_shopify_url(path)
+	r = s.put(url, data=json.dumps(data), headers=get_header())
+	r.raise_for_status()
+	return r.json()
+
 def delete_request(path):
 	s = get_request_session()
 	url = get_shopify_url(path)
