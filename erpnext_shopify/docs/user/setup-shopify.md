@@ -1,5 +1,5 @@
 Install ERPNext's, ERPNext-Shopify Connector app from Installer 
-<img class="screenshot" src="{{ docs_base_url }}/assets/img/broker1.1.png">
+<img class="screenshot" src="{{ docs_base_url }}/assets/img/installer.png">
 
 Now, you can connect your shopify account to ERPNext account by two ways.
 
@@ -19,7 +19,7 @@ After Submitting a form, it will redirect to Permission Page. It will ask for pe
  - Modify Customer details and customer groups
  - Modify Orders, transactions and fulfillments
 
-<img class="screenshot" src="{{ docs_base_url }}/assets/img/broker1.3.png">
+<img class="screenshot" src="{{ docs_base_url }}/assets/img/permission.png">
 
 After installing Connector, login to your ERPNext Account and setup Shopify Settings page.
 
@@ -27,22 +27,22 @@ After installing Connector, login to your ERPNext Account and setup Shopify Sett
 
 From Shopify admin desk, create private app , APP > Private App
 
-<img class="screenshot" src="{{ docs_base_url }}/assets/img/broker2.1.png">
+<img class="screenshot" src="{{ docs_base_url }}/assets/img/app-list.png">
 
 Each App has its own API key and Password. 
 
-<img class="screenshot" src="{{ docs_base_url }}/assets/img/broker2.2.png">
+<img class="screenshot" src="{{ docs_base_url }}/assets/img/private-app-credentails.png">
 
 Pick up API key and Password, place them inside ERPNext Shopify Settings page.
 
-<img class="screenshot" src="{{ docs_base_url }}/assets/img/broker2.3.png">
+<img class="screenshot" src="{{ docs_base_url }}/assets/img/erpnext-config-for-private-app.png">
 
 
 #### Setup Shopify Settings
 
 > Setup > Integrations > Shopify Settings
 
-<img class="screenshot" src="{{ docs_base_url }}/assets/img/broker1.4.png">
+<img class="screenshot" src="{{ docs_base_url }}/assets/img/setup-shopify-settings.png">
 
 #### Sync Data
 There are two options to sync data.
