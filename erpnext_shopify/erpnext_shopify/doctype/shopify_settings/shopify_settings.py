@@ -133,6 +133,7 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 		"has_variants": has_variant,
 		"attributes":attributes,
 		"stock_uom": item.get("uom") or _("Nos"), 
+		"stock_keeping_unit": item.get("sku") or get_sku(item),
 		"default_warehouse": warehouse
 	}).insert()
 	
@@ -141,12 +142,14 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 
 def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list):
 	for variant in item.get("variants"):
+		
 		variant_item = {
 			"id" : variant.get("id"),
 			"item_code": variant.get("id"),
 			"title": item.get("title"),
 			"product_type": item.get("product_type"),
 			"uom": _("Nos"),
+			"sku": variant.get("sku"),
 			"item_price": variant.get("price"),
 			"variant_id": variant.get("id")
 		}
@@ -176,19 +179,9 @@ def get_item_group(product_type=None):
 	else:
 		return _("All Item Groups")
 
-def get_stock_uom(item):
-	sku = item.get("variants")[0].get("sku")
-	if sku:
-		if not frappe.db.get_value("UOM", sku, "name"):
-			return frappe.get_doc({
-				"doctype": "UOM",
-				"uom_name": item.get("variants")[0].get("sku")
-			}).insert().name
-		else:
-			return sku
-	else:
-		return _("Nos")
-
+def get_sku(item):
+	return item.get("variants")[0].get("sku")
+	
 def add_to_price_list(item):
 	frappe.get_doc({
 		"doctype": "Item Price",
