@@ -2,11 +2,11 @@
 <!-- no-breadcrumbs -->
 
 <div class="jumbotron">
-  <h1>ERPNext-Shopify Connector</h1>
-  <p>Provides syncing between configured Shopify Account and ERPNext Account</p>
+  <h1>ERPNext Shopify Connector</h1>
+  <p>Sync transactions between Shopify and ERPNext</p>
 </div>
 
-<div class="section" style="padding-top: 0px;">
+<div class="section" style="padding-top: 0px; margin-top: -30px;">
     <div class="fake-browser-frame">
     	<img class="img-responsive browser-image feature-image"
             src="assets/img/home.png">
@@ -15,15 +15,19 @@
 
 
 <div class="section">
-    <p>ERPNext Shopify Connector will sync data between Shopify account to ERPNext account.
+    <p>ERPNext Shopify Connector will sync data between your Shopify and ERPNext accounts.
 <br></p>
 
 <ol>
-    <li> It will sync Products and Cutomers from Shopify to ERPnext and Vice Versa.</li>
-    <li> It will sync Orders from Shopify to ERPNext.
+    <li> It will sync Products and Cutomers between Shopify and ERPNext</li>
+    <li> It will push Orders from Shopify to ERPNext
         <ul>
-            <li>If payment is marked on Shopify against Order then it will create Sales Invoice is ERPNext marked as paid.</li>
-            <li>If fulfillment has been marked against Order in Shopify then in ERPNext it will create Delivery Note in Draft state.</li>
+            <li>
+                If the Order has been paid for in Shopify, it will create a Sales Invoice in ERPNext and record the corresponding Payment Entry
+            </li>
+            <li>
+                If the Order has been fulfilled in Shopify, it will create a draft Delivery Note in ERPNext
+            </li>
         </ul>
     </li>
 </ol>
@@ -31,12 +35,8 @@
 </div>
 
 
-<div class="section text-center">
-    <a href="contents.html" class="btn btn-lg btn-primary">Table of Contents</a>
-</div>
 
-
-<div class="section">
+<div class="section" id="install">
     <h2>Install</h2>
 
     <h4>From your site</h4>
