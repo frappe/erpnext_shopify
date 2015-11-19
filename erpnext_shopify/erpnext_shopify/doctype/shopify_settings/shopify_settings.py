@@ -167,7 +167,7 @@ def add_to_price_list(item):
 
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group, description, has_variants, stock_uom from tabItem 
-		where ifnull(sync_with_shopify, 0)=1 and variant_of is null and shopify_id is null""", as_dict=1):
+		where sync_with_shopify=1 and variant_of is null and shopify_id is null""", as_dict=1):
 		variant_item_code_list = []
 		
 		item_data = {
@@ -295,7 +295,7 @@ def create_customer_address(erp_cust, customer):
 
 def sync_erp_customers():
 	for customer in frappe.db.sql("""select name, customer_name from tabCustomer where ifnull(shopify_id, '') = '' 
-		and ifnull(sync_with_shopify, 0) = 1 """, as_dict=1):
+		and sync_with_shopify = 1 """, as_dict=1):
 		cust = {
 			"first_name": customer['customer_name']
 		}
