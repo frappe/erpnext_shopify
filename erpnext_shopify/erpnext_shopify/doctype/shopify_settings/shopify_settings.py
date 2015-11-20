@@ -9,7 +9,7 @@ from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, nowtime, cint
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import get_request, get_shopify_customers, get_address_type, post_request,\
- get_shopify_items, get_shopify_orders
+ get_shopify_items, get_shopify_orders, is_authentic_user
 
 shopify_variants_attr_list = ["option1", "option2", "option3"] 
 
@@ -27,21 +27,27 @@ def get_series():
 
 @frappe.whitelist()	
 def sync_shopify():
-	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+	if is_authentic_user():
+		shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
-	if not frappe.session.user:
-		user = frappe.db.sql("""select parent from tabUserRole 
-			where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
-		frappe.set_user(user)
+		if not frappe.session.user:
+			user = frappe.db.sql("""select parent from tabUserRole 
+				where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
+			frappe.set_user(user)
 		
-	if shopify_settings.enable_shopify:
-		try :
-			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
-			sync_customers()
-			sync_orders()
+		if shopify_settings.enable_shopify:
+			try :
+				sync_products(shopify_settings.price_list, shopify_settings.warehouse)
+				sync_customers()
+				sync_orders()
 			
-		except ShopifyError:
-			pass			
+			except ShopifyError:
+				pass
+	else:
+		frappe.msgprint(_("""Invalid acess
+			Refer : <a href = 'http://frappe.github.io/erpnext_shopify/user/'>Shopify User Doc</a>"""),
+			raise_exception=1)
+							
 def sync_products(price_list, warehouse):
 	sync_shopify_items(warehouse)
 	sync_erp_items(price_list, warehouse)

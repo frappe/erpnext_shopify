@@ -5,6 +5,14 @@ from functools import wraps
 
 import hashlib, base64, hmac, json
 
+def is_authentic_user():
+	shopify_settings = get_shopify_settings()
+	
+	if shopify_settings.app_type == "Private":
+		return shopify_settings.password and shopify_settings.api_key and shopify_settings.shopify_url
+	else:
+		return shopify_url.access_token and shopify_settings.shopify_url
+	
 def get_shopify_items():
 	return get_request('/admin/products.json')['products']
 
