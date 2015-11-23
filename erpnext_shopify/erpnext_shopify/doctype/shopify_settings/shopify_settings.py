@@ -58,15 +58,14 @@ def sync_shopify():
 				where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
 			frappe.set_user(user)
 		
-		if shopify_settings.enable_shopify:
-			try :
-				sync_products(shopify_settings.price_list, shopify_settings.warehouse)
-				sync_customers()
-				sync_orders()
-			
-			except ShopifyError:
-				shopify_settings.erpnext_shopify = 0
-				shopify_settings.save()
+		try :
+			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
+			sync_customers()
+			sync_orders()
+		
+		except ShopifyError:
+			shopify_settings.erpnext_shopify = 0
+			shopify_settings.save()
 	else:
 		frappe.msgprint(_("""Invalid acess
 			Refer : <a href = 'http://frappe.github.io/erpnext_shopify/user/'>Shopify User Doc</a>"""),
