@@ -54,9 +54,7 @@ def sync_shopify():
 	
 	if shopify_settings.enable_shopify:	
 		if not frappe.session.user:
-			user = frappe.db.sql("""select parent from tabUserRole 
-				where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
-			frappe.set_user(user)
+			frappe.set_user("Administrator")
 		
 		try :
 			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
