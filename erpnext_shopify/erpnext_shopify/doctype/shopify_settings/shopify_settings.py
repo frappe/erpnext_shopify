@@ -50,9 +50,9 @@ def get_series():
 
 @frappe.whitelist()	
 def sync_shopify():
-	if is_authentic_user():
-		shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
+	if shopify_settings.enable_shopify:	
 		if not frappe.session.user:
 			user = frappe.db.sql("""select parent from tabUserRole 
 				where role = "System Manager" and parent not in ('administrator', "Administrator") limit 1""", as_list=1)[0][0]
@@ -65,7 +65,8 @@ def sync_shopify():
 				sync_orders()
 			
 			except ShopifyError:
-				pass
+				shopify_settings.erpnext_shopify = 0
+				shopify_settings.save()
 	else:
 		frappe.msgprint(_("""Invalid acess
 			Refer : <a href = 'http://frappe.github.io/erpnext_shopify/user/'>Shopify User Doc</a>"""),
