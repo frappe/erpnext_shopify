@@ -5,14 +5,6 @@ from functools import wraps
 
 import hashlib, base64, hmac, json
 
-def is_authentic_user():
-	shopify_settings = get_shopify_settings()
-	
-	if shopify_settings.app_type == "Private":
-		return shopify_settings.password and shopify_settings.api_key and shopify_settings.shopify_url
-	else:
-		return shopify_url.access_token and shopify_settings.shopify_url
-	
 def get_shopify_items():
 	return get_request('/admin/products.json')['products']
 
@@ -84,17 +76,21 @@ def get_shopify_settings():
 	d = frappe.get_doc("Shopify Settings")
 	return d.as_dict()
 	
-def get_request(path):
+def get_request(path, settings=None):
+	if not settings:
+		settings = get_shopify_settings()
+		
 	s = get_request_session()
-	url = get_shopify_url(path)
-	r = s.get(url, headers=get_header())
+	url = get_shopify_url(path, settings)
+	r = s.get(url, headers=get_header(settings))
 	r.raise_for_status()
 	return r.json()
 	
 def post_request(path, data):
+	settings = get_shopify_settings()
 	s = get_request_session()
 	url = get_shopify_url(path)
-	r = s.post(url, data=json.dumps(data), headers=get_header())
+	r = s.post(url, data=json.dumps(data), headers=get_header(settings))
 	r.raise_for_status()
 	return r.json()
 
@@ -104,16 +100,14 @@ def delete_request(path):
 	r = s.delete(url)
 	r.raise_for_status()
 
-def get_shopify_url(path):
-	settings = get_shopify_settings()
+def get_shopify_url(path, settings):
 	if settings['app_type'] == "Private":
 		return 'https://{}:{}@{}/{}'.format(settings['api_key'], settings['password'], settings['shopify_url'], path)
 	else:
 		return 'https://{}/{}'.format(settings['shopify_url'], path)
 		
-def get_header():
+def get_header(settings):
 	header = {'Content-type': 'application/json'}
-	settings = get_shopify_settings()
 	
 	if settings['app_type'] == "Private":
 		return header

@@ -9,13 +9,36 @@ from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, nowtime, cint
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import get_request, get_shopify_customers, get_address_type, post_request,\
- get_shopify_items, get_shopify_orders, is_authentic_user
+ get_shopify_items, get_shopify_orders
 
 shopify_variants_attr_list = ["option1", "option2", "option3"] 
 
 class ShopifyError(Exception):pass
 
-class ShopifySettings(Document): pass
+class ShopifySettings(Document):
+	def validate(self):
+		if self.enable_shopify == 1:
+			self.validate_access_credentials()
+			self.validate_access()
+			
+	def validate_access_credentials(self):		
+		if self.app_type == "Private":
+			if not (self.password and self.api_key and self.shopify_url):
+				frappe.msgprint(_("Missing value for Passowrd, API Key or Shopify URL"), raise_exception=1)
+				
+		else:
+			if not (self.access_token and self.shopify_url):
+				frappe.msgprint(_("Access token or Shopify URL missing"), raise_exception=1)
+					
+	def validate_access(self):
+		try:
+			get_request('/admin/products.json', {"api_key": self.api_key, 
+				"password": self.password, "shopify_url": self.shopify_url, 
+				"access_token": self.access_token, "app_type": self.app_type})
+				
+		except Exception:
+			self.set("enable_shopify", 0)
+			
 	
 @frappe.whitelist()
 def get_series():

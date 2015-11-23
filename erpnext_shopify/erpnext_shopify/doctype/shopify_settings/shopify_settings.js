@@ -25,7 +25,7 @@ frappe.ui.form.on("Shopify Settings", "app_type", function(frm, dt, dn) {
 })
 
 frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
-	if(!frm.doc.__islocal){
+	if(!frm.doc.__islocal && frm.doc.enable_shopify === 1){
 		frm.toggle_reqd("price_list", true);
 		frm.toggle_reqd("warehouse", true);
 		frm.toggle_reqd("taxes", true);
