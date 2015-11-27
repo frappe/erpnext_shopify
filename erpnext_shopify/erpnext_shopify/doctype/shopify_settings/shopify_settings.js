@@ -25,7 +25,7 @@ frappe.ui.form.on("Shopify Settings", "app_type", function(frm, dt, dn) {
 })
 
 frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
-	if(!frm.doc.__islocal){
+	if(!frm.doc.__islocal && frm.doc.enable_shopify === 1){
 		frm.toggle_reqd("price_list", true);
 		frm.toggle_reqd("warehouse", true);
 		frm.toggle_reqd("taxes", true);
@@ -46,6 +46,12 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 					}
 				})
 			}, 'icon-sitemap')
+	}
+	if(!frm.doc.access_token && (!frm.doc.api_key || !frm.doc.password)) {
+		cur_frm.add_custom_button(__("Connect to Shopify"), 
+			function(){
+				window.open("https://apps.shopify.com/erpnext");
+			}).addClass("btn-primary")
 	}
 })
 

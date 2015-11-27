@@ -10,7 +10,7 @@ This app synchronizes the following data between your Shopify and ERPNext accoun
 
 ## Setup
 
-1. [Install](/index.html#install) ERPNext Shopify app in your ERPNext site
+1. [Install]({{ docs_base_url }}/index.html#install) ERPNext Shopify app in your ERPNext site
 1. Connect your Shopify account to ERPNext
 	1. Connect via the Public ERPNext App in Shopify's App Store (recommended)
 	1. Connect by creating a Private App
