@@ -2,6 +2,7 @@ import frappe
 from frappe.utils import get_request_session
 from frappe.exceptions import AuthenticationError, ValidationError
 from functools import wraps
+from frappe import _
 
 import hashlib, base64, hmac, json
 
@@ -74,8 +75,13 @@ def webhook_handler():
 
 def get_shopify_settings():
 	d = frappe.get_doc("Shopify Settings")
-	return d.as_dict()
-	
+	if d.shopify_url:
+		return d.as_dict()
+	else:
+		frappe.db.set_value("Shopify Settings", None, "enable_shopify", 0)
+		frappe.db.commit()
+		frappe.throw(_("""Shopify App store URL is not configured on Shopify Settings"""))
+		
 def get_request(path, settings=None):
 	if not settings:
 		settings = get_shopify_settings()
@@ -89,7 +95,7 @@ def get_request(path, settings=None):
 def post_request(path, data):
 	settings = get_shopify_settings()
 	s = get_request_session()
-	url = get_shopify_url(path)
+	url = get_shopify_url(path, settings)
 	r = s.post(url, data=json.dumps(data), headers=get_header(settings))
 	r.raise_for_status()
 	return r.json()
