@@ -24,14 +24,17 @@
 		href="/assets/img/favicon.ico"
 		type="image/x-icon">
     
-<meta name="name" content="User" data-html-block="meta_block">
+<meta name="name" content="ERPNext Shopify Connector" data-html-block="meta_block">
 <meta name="twitter:card" content="summary" data-html-block="meta_block">
-<meta name="twitter:description" content="Setup Shopify {index}" data-html-block="meta_block">
+<meta name="image" content="https://frappe.github.io/erpnext_shopify/assets/img/broker1.2.png" data-html-block="meta_block">
 <meta name="og:type" content="article" data-html-block="meta_block">
-<meta name="og:description" content="Setup Shopify {index}" data-html-block="meta_block">
-<meta name="og:title" content="User" data-html-block="meta_block">
-<meta name="twitter:title" content="User" data-html-block="meta_block">
-<meta name="description" content="Setup Shopify {index}" data-html-block="meta_block">
+<meta name="og:description" content="This app synchronizes the following data between your Shopify and ERPNext accounts Products Customers Orders, payments and order fulfillment from Shopify into ERPNext Setup Install ERPNext Shopify app in your ERPNext site Connect your Shopify account to ERPNext Connect via the Public ERPNext App in Shopify&#39;s App Store (recommended)&lt;" data-html-block="meta_block">
+<meta name="twitter:image:src" content="https://frappe.github.io/erpnext_shopify/assets/img/broker1.2.png" data-html-block="meta_block">
+<meta name="og:title" content="ERPNext Shopify Connector" data-html-block="meta_block">
+<meta name="twitter:title" content="ERPNext Shopify Connector" data-html-block="meta_block">
+<meta name="og:image" content="https://frappe.github.io/erpnext_shopify/assets/img/broker1.2.png" data-html-block="meta_block">
+<meta name="twitter:description" content="This app synchronizes the following data between your Shopify and ERPNext accounts Products Customers Orders, payments and order fulfillment from Shopify into ERPNext Setup Install ERPNext Shopify app in your ERPNext site Connect your Shopify account to ERPNext Connect via the Public ERPNext App in Shopify&#39;s App Store (recommended)&lt;" data-html-block="meta_block">
+<meta name="description" content="This app synchronizes the following data between your Shopify and ERPNext accounts Products Customers Orders, payments and order fulfillment from Shopify into ERPNext Setup Install ERPNext Shopify app in your ERPNext site Connect your Shopify account to ERPNext Connect via the Public ERPNext App in Shopify&#39;s App Store (recommended)&lt;" data-html-block="meta_block">
 
 		
 			<style data-html-block="style"></style></head>
@@ -55,11 +58,7 @@
 				
 				<ul class="nav navbar-nav navbar-left">
 </ul>
-<ul class="nav navbar-nav navbar-right"><li data-label='Contents' >
-	<a href="https://frappe.github.io/erpnext_shopify/contents.html"
-		
-		>
-	Contents</a></li><li data-label='User Guide' >
+<ul class="nav navbar-nav navbar-right"><li data-label='User Guide' >
 	<a href="https://frappe.github.io/erpnext_shopify/user"
 		
 		>
@@ -86,7 +85,7 @@
     	<div class="page-content-wrapper">
             <div class="row">
                 <div class="col-sm-8">
-            		<div class="page-header-block" data-html-block="header"><h1>User</h1></div>
+            		<div class="page-header-block" data-html-block="header"><h1>ERPNext Shopify Connector</h1></div>
                 </div>
                 <div class="col-sm-4">
             		<div class="page-header-actions-block" data-html-block="header-actions"></div>
@@ -106,21 +105,79 @@
 <div class="webpage-content">
 	
 	<article class="web-page-content" id="user" style="text-align: Left">
-	<h2>Setup Shopify</h2>
+	<p>This app synchronizes the following data between your Shopify and ERPNext accounts</p>
 
-<p>
+<ol>
+<li>Products</li>
+<li>Customers</li>
+<li>Orders, payments and order fulfillment from Shopify into ERPNext</li>
+</ol>
 
+<hr />
 
-    <ol>
-    
-        <li>
-            <a href="https://frappe.github.io/erpnext_shopify/user/setup-shopify.html">Setup Shopify</a>
-            
-        </li>
-    
-    </ol>
-</p>
+<h2>Setup</h2>
 
+<ol>
+<li><a href="https://frappe.github.io/erpnext_shopify/index.html#install">Install</a> ERPNext Shopify app in your ERPNext site</li>
+<li>Connect your Shopify account to ERPNext
+<ol>
+<li>Connect via the Public ERPNext App in Shopify's App Store (recommended)</li>
+<li>Connect by creating a Private App</li>
+</ol></li>
+</ol>
+
+<h4>Connect via the Public ERPNext App</h4>
+
+<ol>
+<li>Login to your Shopify account and install <a href="https://apps.shopify.com/erpnext-connector-1">ERPNext app</a> from the Shopify App Store</li>
+<li>On installing the app, you will be redirected to <strong>ERPNext Shopify Connector</strong> page where you will need to fill in your ERPNext credentials and then click on Submit <br />
+<img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/broker1.2.png">    </li>
+<li>Next, you will be taken to the Permissions page, where you will be asked to allow ERPNext to:
+<ul>
+<li>Modify Products, variants and collections</li>
+<li>Modify Customer details and customer groups</li>
+<li>Modify Orders, transactions and fulfillments <br />
+<img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/permission.png"></li>
+</ul></li>
+<li>Next, login to your ERPNext site, go to Setup &gt; Integrations &gt; Shopify Settings and modify the connector's configuration</li>
+</ol>
+
+<h4>Connect by creating a Private App</h4>
+
+<ol>
+<li>From within your Shopify account, go to Apps &gt; Private Apps &gt; Create a Private App
+<img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/shopify-private-apps-page.png"></li>
+<li>Give it a title and save the app. Shopify will generate a unique API Key and Password for this app
+<img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/shopify-new-private-app.png"></li>
+<li>Login to your ERPNext site, then navigate to Setup &gt; Integrations &gt; Shopify Settings</li>
+<li>Select the App Type as "Private", specify your Shopify account's URL, copy the private app's API Key and Password into the form and save the settings
+<img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/erpnext-config-for-private-app.png"></li>
+</ol>
+
+<hr />
+
+<h2>Shopify Settings</h2>
+
+<blockquote>
+  <p>Setup &gt; Integrations &gt; Shopify Settings</p>
+</blockquote>
+
+<ol>
+<li>Specify Price List and Warehouse to be used in the transactions</li>
+<li>Specify which Cash/Bank Account to use for recording payments</li>
+<li>Map Shopify Taxes and Shipping to ERPNext Accounts</li>
+<li>Mention the Series to be used by the transactions created during sync</li>
+</ol>
+
+<p><img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/setup-shopify-settings.png"></p>
+
+<hr />
+
+<h2>Synchronization</h2>
+
+<p>The connector app synchronizes data between Shopify and ERPNext automatically, every hour. However, you can initiate a manual sync by going to Setup &gt; Integrations &gt; Shopify Settings and clicking on <strong>Sync Shopify</strong></p>
+
+<p><img class="screenshot" src="https://frappe.github.io/erpnext_shopify/assets/img/sync.png"></p>
 	</article>
 	
 </div>
@@ -170,11 +227,7 @@
 				<div class="sidebar-navbar-items">
 					<ul class="nav navbar-nav navbar-left">
 </ul>
-<ul class="nav navbar-nav navbar-right"><li data-label='Contents' >
-	<a href="https://frappe.github.io/erpnext_shopify/contents.html"
-		
-		>
-	Contents</a></li><li data-label='User Guide' >
+<ul class="nav navbar-nav navbar-right"><li data-label='User Guide' >
 	<a href="https://frappe.github.io/erpnext_shopify/user"
 		
 		>
