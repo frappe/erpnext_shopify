@@ -78,9 +78,7 @@ def get_shopify_settings():
 	if d.shopify_url:
 		return d.as_dict()
 	else:
-		frappe.db.set_value("Shopify Settings", None, "enable_shopify", 0)
-		frappe.db.commit()
-		frappe.throw(_("""Shopify App store URL is not configured on Shopify Settings"""))
+		raise Exception("Shopify store URL is not configured on Shopify Settings")
 		
 def get_request(path, settings=None):
 	if not settings:

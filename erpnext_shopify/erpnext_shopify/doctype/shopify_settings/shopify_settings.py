@@ -64,8 +64,7 @@ def sync_shopify():
 			sync_orders()
 
 		except ShopifyError:
-			shopify_settings.erpnext_shopify = 0
-			shopify_settings.save()
+			frappe.db.set_value("Shopify Settings", None, "enable_shopify", 0)
 
 	elif frappe.local.form_dict.cmd == "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify":
 		frappe.throw(_("""Shopify connector is not enabled.
