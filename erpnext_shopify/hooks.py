@@ -68,13 +68,11 @@ fixtures = ["Custom Field"]
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-#	}
-# }
+doc_events = {
+	"Bin": {
+		"on_update": "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock"
+	}
+}
 
 # Scheduled Tasks
 # ---------------

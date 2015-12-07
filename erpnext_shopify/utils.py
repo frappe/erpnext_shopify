@@ -98,6 +98,14 @@ def post_request(path, data):
 	r.raise_for_status()
 	return r.json()
 
+def put_request(path, data):
+	settings = get_shopify_settings()
+	s = get_request_session()
+	url = get_shopify_url(path, settings)
+	r = s.put(url, data=json.dumps(data), headers=get_header(settings))
+	r.raise_for_status()
+	return r.json()
+
 def delete_request(path):
 	s = get_request_session()
 	url = get_shopify_url(path)
@@ -111,7 +119,7 @@ def get_shopify_url(path, settings):
 		return 'https://{}/{}'.format(settings['shopify_url'], path)
 		
 def get_header(settings):
-	header = {'Content-type': 'application/json'}
+	header = {'Content-Type': 'application/json'}
 	
 	if settings['app_type'] == "Private":
 		return header
