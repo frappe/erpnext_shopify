@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cstr, flt, nowdate, nowtime, cint
+from frappe.utils import cstr, flt, nowdate, cint
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
 	get_shopify_items, get_shopify_orders, put_request)
@@ -121,7 +121,7 @@ def set_new_attribute_values(item_attr, values):
 			})
 
 def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
-	item_name = frappe.get_doc({
+	frappe.get_doc({
 		"doctype": "Item",
 		"shopify_id": item.get("id"),
 		"variant_id": item.get("variant_id"),
@@ -306,7 +306,7 @@ def create_customer(customer):
 
 def create_customer_address(erp_cust, customer):
 	for i, address in enumerate(customer.get("addresses")):
-		addr = frappe.get_doc({
+		frappe.get_doc({
 			"doctype": "Address",
 			"address_title": erp_cust.customer_name,
 			"address_type": get_address_type(i),
@@ -505,9 +505,10 @@ def update_item_stock(doc, method):
 		
 				
 		item_data["product"]["variants"][0].update({
-			"inventory_quantity": get_balance_qty(item.item_code, shopify_settings.warehouse, doc.actual_qty),
+			"inventory_quantity": cint(doc.actual_qty),
 			"inventory_management": "shopify"
 		})
+
 		put_request(resource, item_data)
 
 def get_product_update_dict_and_resource(shopify_id, variant_id):
@@ -539,16 +540,6 @@ def get_product_update_dict_and_resource(shopify_id, variant_id):
 		"id": variant_id
 	})
 	
-	resource = "/admin/products/{}.json".format(shopify_id)
+	resource = "admin/products/{}.json".format(shopify_id)
 	
 	return item_data, resource
-
-def get_balance_qty(item_code, warehouse, doc_actual_qty):
-	balance_qty = frappe.db.sql("""select qty_after_transaction from `tabStock Ledger Entry`
-		where item_code=%s and warehouse=%s and is_cancelled='No'
-		order by posting_date desc, posting_time desc, name desc 
-		limit 1, 1""", (item_code, warehouse))
-		
-	balance_qty = (flt(balance_qty[0][0]) if balance_qty else 0.0) + flt(doc_actual_qty)
-	
-	return cint(balance_qty)

@@ -69,8 +69,8 @@ fixtures = ["Custom Field"]
 # Hook on document methods and events
 
 doc_events = {
-	"Stock Ledger Entry": {
-		"on_submit": "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock"
+	"Bin": {
+		"on_update": "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock"
 	}
 }
 
