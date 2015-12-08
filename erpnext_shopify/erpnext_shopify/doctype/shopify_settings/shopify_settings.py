@@ -6,12 +6,13 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cstr, flt, nowdate, cint
+from frappe.utils import cstr, flt, nowdate, cint, get_files_path
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
 	get_shopify_items, get_shopify_orders, put_request)
 import requests.exceptions
 from erpnext_shopify.exceptions import ShopifyError
+import base64
 
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
@@ -136,7 +137,7 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 		"stock_keeping_unit": item.get("sku") or get_sku(item),
 		"default_warehouse": warehouse,
 		"image": get_item_image(item)
-	}
+	}).insert()	
 	
 	name, item_details = get_item_details(item)  
 		
@@ -201,8 +202,14 @@ def add_to_price_list(item):
 		"price_list_rate": item.get("item_price") or item.get("variants")[0].get("price")
 	}).insert()
 
+def get_item_image(item):
+	if item.get("image"):
+		return item.get("image").get("src")
+	return None
+
 def sync_erp_items(price_list, warehouse):
-	for item in frappe.db.sql("""select item_code, item_name, item_group, description, has_variants, stock_uom from tabItem
+	for item in frappe.db.sql("""select item_code, item_name, item_group, 
+		description, has_variants, stock_uom, image from tabItem
 		where sync_with_shopify=1 and variant_of is null and shopify_id is null""", as_dict=1):
 		sync_item_with_shopify(item, price_list, warehouse)
 		
@@ -211,12 +218,12 @@ def sync_item_with_shopify(item, price_list, warehouse):
 
 	item_data = {
 				"product": {
-					"title": item.get("item_code"),
+					"title": item.get("item_name"),
 					"body_html": item.get("description"),
 					"product_type": item.get("item_group")
 				}
 			}
-
+	
 	if item.get("has_variants"):
 		variant_list, options, variant_item_code = get_variant_attributes(item, price_list, warehouse)
 
@@ -227,17 +234,37 @@ def sync_item_with_shopify(item, price_list, warehouse):
 
 	else:
 		item_data["product"]["variants"] = [get_price_and_stock_details(item, warehouse, price_list)]
-		
+	
 	new_item = post_request("/admin/products.json", item_data)
 	erp_item = frappe.get_doc("Item", item.get("item_code"))
 	erp_item.shopify_id = new_item['product'].get("id")
-	
+
 	if not item.get("has_variants"):
 		erp_item.variant_id = new_item['product']["variants"][0].get("id")
-	
+
 	erp_item.save()
 
 	update_variant_item(new_item, variant_item_code_list)
+	
+	sync_item_image(erp_item)
+
+def sync_item_image(item):
+	image_info = {
+        "image": {}
+	}
+	
+	if item.image:
+		img_details = frappe.db.get_value("File", {"file_url": item.image}, ["file_name", "content_hash"])
+		
+		if img_details and img_details[1]:
+			with open(get_files_path(img_details[0].lstrip("/")), "rb") as image_file:
+			    image_info["image"]["attachment"] = base64.b64encode(image_file.read())
+			image_info["image"]["filename"] = img_details[0]
+			
+		else:
+			image_info["image"]["src"] = item.image
+		
+		post_request("/admin/products/{0}/images.json".format(item.shopify_id), image_info)
 
 def update_variant_item(new_item, item_code_list):
 	for i, item_code in enumerate(item_code_list):
