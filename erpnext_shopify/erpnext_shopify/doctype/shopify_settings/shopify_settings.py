@@ -437,11 +437,8 @@ def create_salse_order(order, shopify_settings):
 	return so
 
 def create_sales_invoice(order, shopify_settings, so):
-	sales_invoice = frappe.db.get_value("Sales Order", {"shopify_id": order.get("id")},\
-		 ["ifnull(per_billed, '') as per_billed"], as_dict=1)
-
 	if not frappe.db.get_value("Sales Invoice", {"shopify_id": order.get("id")}, "name") and so.docstatus==1 \
-		and not sales_invoice["per_billed"]:
+		and not so.per_billed:
 		si = make_sales_invoice(so.name)
 		si.shopify_id = order.get("id")
 		si.naming_series = shopify_settings.sales_invoice_series or "SI-Shopify-"
