@@ -532,7 +532,8 @@ def get_tax_account_head(tax):
 	
 def trigger_update_item_stock(doc, method):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
-	update_item_stock(doc.item_code, shopify_settings, doc)
+	if shopify_settings.shopify_url and shopify_settings.enable_shopify:
+		update_item_stock(doc.item_code, shopify_settings, doc)
 	
 def update_item_stock_qty():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")

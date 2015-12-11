@@ -17,6 +17,7 @@ long_description = """ERPNext Shopify Connector will sync data between your Shop
 		</ul>
 	</li>
 </ol>"""
+docs_version = "1.0"
 
 def get_context(context):
 	context.title = "ERPNext Shopify Connector"
