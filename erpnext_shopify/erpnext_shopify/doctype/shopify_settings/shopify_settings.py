@@ -139,24 +139,16 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 		"image": get_item_image(item)
 	}
 	
-	
-	item_details = frappe.db.get_value("Item", {"shopify_id": item.get("id")}, ["name", "stock_uom"], as_dict=1)		
-	name = item_details.name
-
-	if not item_details.name:
+	name, item_details = get_item_details(item)  
+		
+	if not name:
+		frappe.errprint(["var", item_details, item_dict])
 		new_item = frappe.get_doc(item_dict)
 		new_item.insert()
 		name = new_item.name
 		
 	else:
-		update_item = frappe.get_doc("Item", item_details.name)
-		
-		item_dict["stock_uom"] = item_details.stock_uom
-		del item_dict['item_code']
-		update_item.update(item_dict)
-		
-		update_item.save()
->>>>>>> [fixes and enhance] item sync
+		update_item(item_details, item_dict)
 	
 	name, item_details = get_item_details(item)  
 		
@@ -184,7 +176,7 @@ def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list
 			"item_price": variant.get("price"),
 			"variant_id": variant.get("id")
 		}
-
+		
 		for i, variant_attr in enumerate(shopify_variants_attr_list):
 			if variant.get(variant_attr):
 				attributes[i].update({"attribute_value": get_attribute_value(variant.get(variant_attr), attributes[i])})
@@ -211,7 +203,9 @@ def get_item_group(product_type=None):
 		return _("All Item Groups")
 
 def get_sku(item):
-	return item.get("variants")[0].get("sku")
+	if item.get("variants"):
+		return item.get("variants")[0].get("sku")
+	return ""
 	
 def add_to_price_list(item, name):
 	item_price_name = frappe.db.get_value("Item Price", {"item_code": name}, "name")
@@ -231,6 +225,34 @@ def get_item_image(item):
 	if item.get("image"):
 		return item.get("image").get("src")
 	return None
+
+def get_item_details(item):
+	name, item_details = None, {}
+	
+	item_details = frappe.db.get_value("Item", {"shopify_id": item.get("id")}, 
+		["name", "stock_uom", "item_name"], as_dict=1)
+		
+	if item_details:
+		name = item_details.name  
+	else:
+		item_details = frappe.db.get_value("Item", {"variant_id": item.get("id")}, 
+			["name", "stock_uom", "item_name"], as_dict=1)
+		name = item_details.name
+	
+	return name, item_details
+
+def update_item(item_details, item_dict):
+	update_item = frappe.get_doc("Item", item_details.name)
+	
+	item_dict["stock_uom"] = item_details.stock_uom
+	item_dict["description"] = item_dict["description"] or update_item.description
+	
+	del item_dict['item_code']
+	del item_dict["variant_of"]
+	
+	update_item.update(item_dict)
+
+	update_item.save()
 
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group, 
@@ -274,9 +296,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 		update_variant_item(new_item, variant_item_code_list)
 		
 	else:
-		import json
 		item_data["product"]["id"] = item.get("shopify_id")
-		print json.dumps(item_data)
 		put_request("/admin/products/{}.json".format(item.get("shopify_id")), item_data)
 	
 	sync_item_image(erp_item)
@@ -346,7 +366,6 @@ def get_price_and_stock_details(item, warehouse, price_list):
 		"inventory_quantity": cint(qty) if qty else 0,
 		"inventory_management": "shopify"
 	}
-	print item.variant_id
 	if item.variant_id:
 		item_price_and_quantity["id"] = item.variant_id
 		
