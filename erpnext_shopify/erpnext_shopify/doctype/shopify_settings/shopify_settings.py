@@ -129,7 +129,7 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 		"sync_with_shopify": 1,
 		"item_code": cstr(item.get("item_code")) or cstr(item.get("id")),
 		"item_name": item.get("title"),
-		"description": item.get("title"),
+		"description": item.get("body_html"),
 		"item_group": get_item_group(item.get("product_type")),
 		"has_variants": has_variant,
 		"attributes":attributes,
