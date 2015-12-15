@@ -140,18 +140,7 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 	}
 	
 	name, item_details = get_item_details(item)  
-		
-	if not name:
-		frappe.errprint(["var", item_details, item_dict])
-		new_item = frappe.get_doc(item_dict)
-		new_item.insert()
-		name = new_item.name
-		
-	else:
-		update_item(item_details, item_dict)
-	
-	name, item_details = get_item_details(item)  
-		
+
 	if not name:
 		new_item = frappe.get_doc(item_dict)
 		new_item.insert()
@@ -263,13 +252,11 @@ def sync_erp_items(price_list, warehouse):
 def sync_item_with_shopify(item, price_list, warehouse):
 	variant_item_code_list = []
 
-	item_data = {
-				"product": {
-					"title": item.get("item_name"),
-					"body_html": item.get("description"),
-					"product_type": item.get("item_group")
-				}
-			}
+	item_data = { "product": 
+		{ "title": item.get("item_name"), 
+		"body_html": item.get("description"), 
+		"product_type": item.get("item_group")}
+	}
 	
 	if item.get("has_variants"):
 		variant_list, options, variant_item_code = get_variant_attributes(item, price_list, warehouse)

@@ -4,7 +4,6 @@ from frappe.exceptions import AuthenticationError, ValidationError
 from functools import wraps
 from frappe import _
 from .exceptions import ShopifyError
-
 import hashlib, base64, hmac, json
 
 def get_shopify_items():

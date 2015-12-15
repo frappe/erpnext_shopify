@@ -11,7 +11,7 @@ def execute():
 		for item in frappe.db.sql("""select name, item_code, shopify_id, has_variants, variant_of from tabItem 
 			where sync_with_shopify=1 and shopify_id is not null""", as_dict=1):
 			
-			if item.get("varint_of"):
+			if item.get("variant_of"):
 				frappe.db.sql(""" update tabItem set variant_id=shopify_id 
 					where name = %s """, item.get("name"))
 				
