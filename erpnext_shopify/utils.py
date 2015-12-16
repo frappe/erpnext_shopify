@@ -3,7 +3,7 @@ from frappe.utils import get_request_session
 from frappe.exceptions import AuthenticationError, ValidationError
 from functools import wraps
 from frappe import _
-from erpnext_shopify.exceptions import ShopifyError
+from .exceptions import ShopifyError
 
 import hashlib, base64, hmac, json
 
