@@ -124,12 +124,12 @@ def create_item(item, warehouse, has_variant=0, attributes=[],variant_of=None):
 	item_dict = {
 		"doctype": "Item",
 		"shopify_id": item.get("id"),
-		"variant_id": item.get("variant_id"),
+		"shopify_variant_id": item.get("variant_id"),
 		"variant_of": variant_of,
 		"sync_with_shopify": 1,
 		"item_code": cstr(item.get("item_code")) or cstr(item.get("id")),
 		"item_name": item.get("title"),
-		"description": item.get("body_html"),
+		"description": item.get("body_html") or item.get("title"),
 		"item_group": get_item_group(item.get("product_type")),
 		"has_variants": has_variant,
 		"attributes":attributes,
@@ -224,9 +224,10 @@ def get_item_details(item):
 	if item_details:
 		name = item_details.name  
 	else:
-		item_details = frappe.db.get_value("Item", {"variant_id": item.get("id")}, 
+		item_details = frappe.db.get_value("Item", {"shopify_variant_id": item.get("id")}, 
 			["name", "stock_uom", "item_name"], as_dict=1)
-		name = item_details.name
+		if item_details:
+			name = item_details.name
 	
 	return name, item_details
 
@@ -245,7 +246,7 @@ def update_item(item_details, item_dict):
 
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group, 
-		description, has_variants, stock_uom, image, shopify_id, variant_id from tabItem
+		description, has_variants, stock_uom, image, shopify_id, shopify_variant_id from tabItem
 		where sync_with_shopify=1 and variant_of is null""", as_dict=1):
 		sync_item_with_shopify(item, price_list, warehouse)
 		
@@ -276,7 +277,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 		erp_item.shopify_id = new_item['product'].get("id")
 
 		if not item.get("has_variants"):
-			erp_item.variant_id = new_item['product']["variants"][0].get("id")
+			erp_item.shopify_variant_id = new_item['product']["variants"][0].get("id")
 
 		erp_item.save()
 
@@ -310,7 +311,7 @@ def update_variant_item(new_item, item_code_list):
 	for i, item_code in enumerate(item_code_list):
 		erp_item = frappe.get_doc("Item", item_code)
 		erp_item.shopify_id = new_item['product']["variants"][i].get("id")
-		erp_item.variant_id = new_item['product']["variants"][i].get("id")
+		erp_item.Shopify_variant_id = new_item['product']["variants"][i].get("id")
 		erp_item.save()
 
 def get_variant_attributes(item, price_list, warehouse):
@@ -353,8 +354,8 @@ def get_price_and_stock_details(item, warehouse, price_list):
 		"inventory_quantity": cint(qty) if qty else 0,
 		"inventory_management": "shopify"
 	}
-	if item.variant_id:
-		item_price_and_quantity["id"] = item.variant_id
+	if item.shopify_variant_id:
+		item_price_and_quantity["id"] = item.shopify_variant_id
 		
 	return item_price_and_quantity
 
@@ -597,10 +598,10 @@ def update_item_stock(item_code, shopify_settings, doc=None):
 		if item.sync_with_shopify and item.shopify_id and shopify_settings.warehouse == doc.warehouse:
 			if item.variant_of:
 				item_data, resource = get_product_update_dict_and_resource(frappe.get_value("Item", 
-					item.variant_of, "shopify_id"), item.variant_id)			
+					item.variant_of, "shopify_id"), item.shopify_variant_id)			
 		
 			else:
-				item_data, resource = get_product_update_dict_and_resource(item.shopify_id, item.variant_id)
+				item_data, resource = get_product_update_dict_and_resource(item.shopify_id, item.shopify_variant_id)
 							
 			item_data["product"]["variants"][0].update({
 				"inventory_quantity": cint(doc.actual_qty),
@@ -609,7 +610,7 @@ def update_item_stock(item_code, shopify_settings, doc=None):
 
 			put_request(resource, item_data)
 
-def get_product_update_dict_and_resource(shopify_id, variant_id):
+def get_product_update_dict_and_resource(shopify_id, shopify_variant_id):
 	"""
 	JSON required to update product
 
@@ -618,7 +619,7 @@ def get_product_update_dict_and_resource(shopify_id, variant_id):
 		        "id": 3649706435 (shopify_id),
 		        "variants": [
 		            {
-		                "id": 10577917379 (variant_id),
+		                "id": 10577917379 (shopify_variant_id),
 		                "inventory_management": "shopify",
 		                "inventory_quantity": 10
 		            }
@@ -635,7 +636,7 @@ def get_product_update_dict_and_resource(shopify_id, variant_id):
 
 	item_data["product"]["id"] = shopify_id
 	item_data["product"]["variants"].append({
-		"id": variant_id
+		"id": shopify_variant_id
 	})
 
 	resource = "admin/products/{}.json".format(shopify_id)

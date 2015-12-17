@@ -11,20 +11,21 @@ import requests.exceptions
 def execute():
 	shopify_settings = frappe.get_doc("Shopify Settings")
 	shopify_items = get_item_list()
+	frappe.reload_doctype("Item")
 	
 	if shopify_settings.shopify_url and shopify_items:
 		for item in frappe.db.sql("""select name, item_code, shopify_id, has_variants, variant_of from tabItem 
 			where sync_with_shopify=1 and shopify_id is not null""", as_dict=1):
 			
 			if item.get("variant_of"):
-				frappe.db.sql(""" update tabItem set variant_id=shopify_id 
+				frappe.db.sql(""" update tabItem set shopify_variant_id=shopify_id 
 					where name = %s """, item.get("name"))
 				
 			elif not item.get("has_variants"):
 				product = filter(lambda shopify_item: shopify_item['id'] == cint(item.get("shopify_id")), shopify_items)
 				
 				if product:
-					frappe.db.sql(""" update tabItem set variant_id=%s 
+					frappe.db.sql(""" update tabItem set shopify_variant_id=%s 
 						where name = %s """, (product[0]["variants"][0]["id"], item.get("name")))
 
 def get_item_list():
