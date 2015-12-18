@@ -70,7 +70,7 @@ fixtures = ["Custom Field"]
 
 doc_events = {
 	"Bin": {
-		"on_update": "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock"
+		"on_update": "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.trigger_update_item_stock"
 	}
 }
 

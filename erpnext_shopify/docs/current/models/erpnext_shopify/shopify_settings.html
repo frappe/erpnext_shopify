@@ -7,7 +7,7 @@
 <div class="dev-header">
 
 <a class="btn btn-default btn-sm" disabled style="margin-bottom: 10px;">
-	Version 0.0.0</a>
+	Version 1.0</a>
 
 
 	<a class="btn btn-default btn-sm" href="https://github.com/frappe/erpnext_shopify/tree/develop/erpnext_shopify/erpnext_shopify/doctype/shopify_settings"
@@ -656,6 +656,22 @@ Private</pre>
     
     
 	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_image" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_image" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_item_image</b>
+        <i class="text-muted">(item)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_line" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_line" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_item_line</b>
@@ -675,9 +691,38 @@ Private</pre>
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_price_and_stock_details" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_price_and_stock_details" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_price_and_stock_details</b>
-        <i class="text-muted">(item, uom, warehouse, price_list)</i>
+        <i class="text-muted">(item, warehouse, price_list)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_product_update_dict_and_resource" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_product_update_dict_and_resource" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_product_update_dict_and_resource</b>
+        <i class="text-muted">(shopify_id, variant_id)</i>
+    </p>
+	<div class="docs-attr-desc"><p>JSON required to update product</p>
+
+<p>item<em>data = {
+        "product": {
+            "id": 3649706435 (shopify</em>id),
+            "variants": [
+                {
+                    "id": 10577917379 (variant<em>id),
+                    "inventory</em>management": "shopify",
+                    "inventory_quantity": 10
+                }
+            ]
+        }
+    }</p>
 </div>
 	<br>
 
@@ -722,9 +767,9 @@ Private</pre>
     
     
 	<p class="docs-attr-name">
-        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_stock_uom" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_stock_uom" class="text-muted small">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_sku" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_sku" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
-		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_stock_uom</b>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_sku</b>
         <i class="text-muted">(item)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
@@ -898,6 +943,38 @@ Private</pre>
     
     
 	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_item_image" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_item_image" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>sync_item_image</b>
+        <i class="text-muted">(item)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_item_with_shopify" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_item_with_shopify" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>sync_item_with_shopify</b>
+        <i class="text-muted">(item, price_list, warehouse)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_orders" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_orders" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>sync_orders</b>
@@ -983,6 +1060,54 @@ Private</pre>
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify_orders" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify_orders" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>sync_shopify_orders</b>
+        <i class="text-muted">()</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.trigger_update_item_stock" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.trigger_update_item_stock" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>trigger_update_item_stock</b>
+        <i class="text-muted">(doc, method)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>update_item_stock</b>
+        <i class="text-muted">(item_code, shopify_settings, doc=None)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock_qty" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item_stock_qty" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>update_item_stock_qty</b>
         <i class="text-muted">()</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>

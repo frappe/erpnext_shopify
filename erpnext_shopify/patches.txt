@@ -1,0 +1,1 @@
+erpnext_shopify.patches.V1_0.set_variant_id #2015-12-01
