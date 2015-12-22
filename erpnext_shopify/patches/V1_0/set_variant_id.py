@@ -10,9 +10,13 @@ from erpnext_shopify.exceptions import ShopifyError
 import requests.exceptions
 
 def execute():
-	shopify_settings = frappe.get_doc("Shopify Settings")
-	shopify_items = get_item_list()
 	frappe.reload_doctype("Item")
+	shopify_settings = frappe.get_doc("Shopify Settings")
+	try:
+		shopify_items = get_item_list()
+	except ShopifyError:
+		print "Could not run shopify patch 'set_variant_id' for site: {0}".format(frappe.local.site)
+		return
 
 	if shopify_settings.shopify_url and shopify_items:
 		for item in frappe.db.sql("""select name, item_code, shopify_id, has_variants, variant_of from tabItem
@@ -33,5 +37,5 @@ def get_item_list():
 	try:
 		return get_shopify_items()
 	except (requests.exceptions.HTTPError, ShopifyError) as e:
-		frappe.throw(_("Somthing went wrong"), e)
+		frappe.throw(_("Something went wrong: {0}").format(frappe.get_traceback()), ShopifyError)
 
