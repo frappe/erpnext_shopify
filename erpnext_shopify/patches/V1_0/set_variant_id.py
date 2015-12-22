@@ -15,6 +15,9 @@ def execute():
 	frappe.reload_doctype("Item")
 
 	shopify_settings = frappe.get_doc("Shopify Settings")
+	if not shopify_settings.enable_shopify:
+		return
+
 	try:
 		shopify_items = get_item_list()
 	except ShopifyError:
