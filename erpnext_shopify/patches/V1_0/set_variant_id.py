@@ -8,9 +8,12 @@ from frappe.utils import cint
 from frappe import _
 from erpnext_shopify.exceptions import ShopifyError
 import requests.exceptions
+from frappe.utils.fixtures import sync_fixtures
 
 def execute():
+	sync_fixtures("erpnext_shopify")
 	frappe.reload_doctype("Item")
+
 	shopify_settings = frappe.get_doc("Shopify Settings")
 	try:
 		shopify_items = get_item_list()
