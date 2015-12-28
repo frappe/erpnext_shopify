@@ -133,7 +133,7 @@
 
 <h3>Fields</h3>
 
-<table class="table table-bordered" style="table-layout: fixed;">
+<table class="table table-bordered">
     <thead>
         <tr>
             <th style="width: 5%">Sr</th>
@@ -466,21 +466,6 @@ Private</pre>
 
 	
         
-	<h3 style="font-weight: normal;">Class <b>ShopifyError</b></h3>
-    
-    <p style="padding-left: 30px;"><i>Inherits from exceptions.Exception</i></h4>
-    
-    <div class="docs-attr-desc"><p></p>
-</div>
-    <div style="padding-left: 30px;">
-        
-    </div>
-    <hr>
-
-	
-
-	
-        
 	<h3 style="font-weight: normal;">Class <b>ShopifySettings</b></h3>
     
     <p style="padding-left: 30px;"><i>Inherits from frappe.model.document.Document</i></h4>
@@ -544,7 +529,7 @@ Private</pre>
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.add_to_price_list" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.add_to_price_list" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>add_to_price_list</b>
-        <i class="text-muted">(item)</i>
+        <i class="text-muted">(item, name)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
@@ -624,7 +609,7 @@ Private</pre>
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.create_item" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.create_item" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>create_item</b>
-        <i class="text-muted">(item, warehouse, has_variant=0, attributes=[], variant_of=None)</i>
+        <i class="text-muted">(item, warehouse, has_variant=0, attributes=None, variant_of=None)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
@@ -749,6 +734,22 @@ Private</pre>
     
     
 	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_details" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_details" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_item_details</b>
+        <i class="text-muted">(item)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_group" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_item_group" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_item_group</b>
@@ -816,7 +817,7 @@ Private</pre>
         <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_product_update_dict_and_resource" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.get_product_update_dict_and_resource" class="text-muted small">
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>get_product_update_dict_and_resource</b>
-        <i class="text-muted">(shopify_id, variant_id)</i>
+        <i class="text-muted">(shopify_id, shopify_variant_id)</i>
     </p>
 	<div class="docs-attr-desc"><p>JSON required to update product</p>
 
@@ -825,9 +826,9 @@ Private</pre>
             "id": 3649706435 (shopify</em>id),
             "variants": [
                 {
-                    "id": 10577917379 (variant<em>id),
-                    "inventory</em>management": "shopify",
-                    "inventory_quantity": 10
+                    "id": 10577917379 (shopify<em>variant</em>id),
+                    "inventory<em>management": "shopify",
+                    "inventory</em>quantity": 10
                 }
             ]
         }
@@ -1186,6 +1187,22 @@ Private</pre>
             <i class="icon-link small" style="color: #ccc;"></i></a>
 		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>trigger_update_item_stock</b>
         <i class="text-muted">(doc, method)</i>
+    </p>
+	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
+</div>
+	<br>
+
+	
+
+	
+        
+    
+    
+	<p class="docs-attr-name">
+        <a name="erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item" href="#erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.update_item" class="text-muted small">
+            <i class="icon-link small" style="color: #ccc;"></i></a>
+		erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.<b>update_item</b>
+        <i class="text-muted">(item_details, item_dict)</i>
     </p>
 	<div class="docs-attr-desc"><p><span class="text-muted">No docs</span></p>
 </div>
