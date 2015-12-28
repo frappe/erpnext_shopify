@@ -150,3 +150,9 @@ def create_webhooks():
 					"collection_publications/delete", "variants/in_stock", "variants/out_of_stock"]:
 
 		create_webhook(event, settings.webhook_address)
+
+def disable_item(item):
+	"""Disable Item if not exist on shopify"""
+	item.disabled = 1
+	item.save()
+	frappe.db.commit()

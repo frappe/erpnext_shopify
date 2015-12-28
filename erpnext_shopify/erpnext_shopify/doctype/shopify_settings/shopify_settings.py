@@ -9,7 +9,7 @@ from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, cint, get_files_path
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
-	get_shopify_items, get_shopify_orders, put_request)
+	get_shopify_items, get_shopify_orders, put_request, disable_item)
 import requests.exceptions
 from erpnext_shopify.exceptions import ShopifyError
 import base64
@@ -251,7 +251,8 @@ def update_item(item_details, item_dict):
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group,
 		description, has_variants, stock_uom, image, shopify_id, shopify_variant_id from tabItem
-		where sync_with_shopify=1 and (variant_of is null or variant_of = '')""", as_dict=1):
+		where sync_with_shopify=1 and (variant_of is null or variant_of = '') 
+		and (disabled is null or disabled = 0)""", as_dict=1):
 		sync_item_with_shopify(item, price_list, warehouse)
 
 def sync_item_with_shopify(item, price_list, warehouse):
@@ -282,11 +283,12 @@ def sync_item_with_shopify(item, price_list, warehouse):
 			get_request("/admin/products/{}.json".format(item.get("shopify_id")))
 		except requests.exceptions.HTTPError, e:
 			if e.args[0] and e.args[0].startswith("404"):
-				item["shopify_id"] = None
-
+				disable_item(erp_item)
+				return
 			else:
+				disable_item(erp_item)
 				raise
-
+			
 	if not item.get("shopify_id"):
 		new_item = post_request("/admin/products.json", item_data)
 		erp_item.shopify_id = new_item['product'].get("id")
@@ -301,7 +303,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	else:
 		item_data["product"]["id"] = item.get("shopify_id")
 		put_request("/admin/products/{}.json".format(item.get("shopify_id")), item_data)
-
+				
 	sync_item_image(erp_item)
 
 def sync_item_image(item):
@@ -322,7 +324,10 @@ def sync_item_image(item):
 			image_info["image"]["src"] = item.image
 
 		if image_info["image"]:
-			post_request("/admin/products/{0}/images.json".format(item.shopify_id), image_info)
+			try:
+				post_request("/admin/products/{0}/images.json".format(item.shopify_id), image_info)
+			except ShopifyError:
+				raise ShopifyError
 
 def update_variant_item(new_item, item_code_list):
 	for i, item_code in enumerate(item_code_list):
@@ -596,7 +601,8 @@ def trigger_update_item_stock(doc, method):
 
 def update_item_stock_qty():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
-	for item in frappe.get_all("Item", fields=['name', "item_code"], filters={"sync_with_shopify": 1}):
+	for item in frappe.get_all("Item", fields=['name', "item_code"], filters={"sync_with_shopify": 1, 
+		"disabled": ("!=", 1)}):
 		update_item_stock(item.item_code, shopify_settings)
 
 def update_item_stock(item_code, shopify_settings, doc=None):
