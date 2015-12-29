@@ -156,3 +156,6 @@ def disable_item(item):
 	item.disabled = 1
 	item.save()
 	frappe.db.commit()
+
+def get_shopify_item_image(shopify_id):
+	return get_request("/admin/products/{0}/images.json".format(shopify_id))["images"]

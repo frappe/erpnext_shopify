@@ -39,6 +39,7 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 				frappe.call({
 					method:"erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify",
 					freeze: true,
+					freeze_message: "Syncing",
 					callback:function(r){
 						if(!r.exc){
 							frappe.msgprint(__("Sync Completed!!"))
