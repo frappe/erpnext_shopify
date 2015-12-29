@@ -151,9 +151,9 @@ def create_webhooks():
 
 		create_webhook(event, settings.webhook_address)
 
-def disable_item(item):
+def disable_shopify_sync(item):
 	"""Disable Item if not exist on shopify"""
-	item.disabled = 1
+	item.sync_with_shopify = 0
 	item.save()
 	frappe.db.commit()
 

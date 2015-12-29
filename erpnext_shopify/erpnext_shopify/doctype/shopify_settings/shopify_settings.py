@@ -9,7 +9,7 @@ from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, cint, get_files_path
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
-	get_shopify_items, get_shopify_orders, put_request, disable_item, get_shopify_item_image)
+	get_shopify_items, get_shopify_orders, put_request, disable_shopify_sync, get_shopify_item_image)
 import requests.exceptions
 from erpnext_shopify.exceptions import ShopifyError
 import base64
@@ -118,7 +118,6 @@ def set_new_attribute_values(item_attr, values):
 				"attribute_value": attr_value,
 				"abbr": cstr(attr_value)[:3]
 			})
-
 
 def create_item(item, warehouse, has_variant=0, attributes=None,variant_of=None):
 	item_dict = {
@@ -283,10 +282,10 @@ def sync_item_with_shopify(item, price_list, warehouse):
 			get_request("/admin/products/{}.json".format(item.get("shopify_id")))
 		except requests.exceptions.HTTPError, e:
 			if e.args[0] and e.args[0].startswith("404"):
-				disable_item(erp_item)
+				disable_shopify_sync(erp_item)
 				return
 			else:
-				disable_item(erp_item)
+				disable_shopify_sync(erp_item)
 				raise
 			
 	if not item.get("shopify_id"):
@@ -624,22 +623,18 @@ def update_item_stock_qty():
 		"disabled": ("!=", 1)}):
 		update_item_stock(item.item_code, shopify_settings)
 
-def update_item_stock(item_code, shopify_settings, doc=None):
+def update_item_stock(item_code, shopify_settings, bin=None):
 	item = frappe.get_doc("Item", item_code)
-	
 	if item.sync_qty_with_shopify:
-		if not doc:
-			bin_name = frappe.db.get_value("Bin", {"warehouse": shopify_settings.warehouse,
-				"item_code": item_code}, "name")
+		if not bin:
+			bin = frappe.get_doc("Bin", {"warehouse": shopify_settings.warehouse,
+			"item_code": item_code})
 
-			if bin_name:
-				doc = frappe.get_doc("Bin", bin_name)
-
-		if doc:
+		if bin:
 			if not item.shopify_id and not item.variant_of:
 				sync_item_with_shopify(item, shopify_settings.price_list, shopify_settings.warehouse)
 
-			if item.sync_with_shopify and item.shopify_id and shopify_settings.warehouse == doc.warehouse:
+			if item.sync_with_shopify and item.shopify_id and shopify_settings.warehouse == bin.warehouse:
 				if item.variant_of:
 					item_data, resource = get_product_update_dict_and_resource(frappe.get_value("Item",
 						item.variant_of, "shopify_id"), item.shopify_variant_id)
@@ -648,7 +643,7 @@ def update_item_stock(item_code, shopify_settings, doc=None):
 					item_data, resource = get_product_update_dict_and_resource(item.shopify_id, item.shopify_variant_id)
 
 				item_data["product"]["variants"][0].update({
-					"inventory_quantity": cint(doc.actual_qty),
+					"inventory_quantity": cint(bin.actual_qty),
 					"inventory_management": "shopify"
 				})
 
