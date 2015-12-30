@@ -4,22 +4,36 @@ from frappe.exceptions import AuthenticationError, ValidationError
 from functools import wraps
 from frappe import _
 from .exceptions import ShopifyError
-import hashlib, base64, hmac, json
+import hashlib, base64, hmac, json, math
+
+def get_total_pages(resource):
+	return int(math.ceil(get_request('/admin/{0}/count.json'.format(resource)).get('count', 0) / 250))
 
 def get_shopify_items():
-	return get_request('/admin/products.json')['products']
-
+	# return get_request('/admin/products.json')['products']
+	products = []
+	for page_idx in xrange(0, get_total_pages("products") or 1):
+		products.extend(get_request('/admin/products.json?limit=250&page={0}'.format(page_idx+1))['products'])
+	return products
+	
 def get_shopify_orders():
-	return get_request('/admin/orders.json')['orders']
-
+	orders = []
+	for page_idx in xrange(0, get_total_pages("orders") or 1):
+		orders.extend(get_request('/admin/orders.json?limit=250&page={0}'.format(page_idx+1))['orders'])
+	return orders
+ 
 def get_country():
 	return get_request('/admin/countries.json')['countries']
 
 def get_shopify_customers():
-	return get_request('/admin/customers.json')['customers']
+	customers = []
+	for page_idx in xrange(0, get_total_pages("customers") or 1):
+		customers.extend(get_request('/admin/customers.json?limit=250&page={0}'.format(page_idx+1))['customers'])
+	return customers
 
 def get_address_type(i):
-	return ["Billing", "Shipping", "Office", "Personal", "Plant", "Postal", "Shop", "Subsidiary", "Warehouse", "Other"][i]
+	return ["Billing", "Shipping", "Office", "Personal", "Plant", "Postal", "Shop", "Subsidiary", 
+	"Warehouse", "Other"][i]
 
 def create_webhook(topic, address):
 	post_request('admin/webhooks.json', json.dumps({
@@ -150,3 +164,12 @@ def create_webhooks():
 					"collection_publications/delete", "variants/in_stock", "variants/out_of_stock"]:
 
 		create_webhook(event, settings.webhook_address)
+
+def disable_shopify_sync(item):
+	"""Disable Item if not exist on shopify"""
+	item.sync_with_shopify = 0
+	item.save()
+	frappe.db.commit()
+
+def get_shopify_item_image(shopify_id):
+	return get_request("/admin/products/{0}/images.json".format(shopify_id))["images"]
