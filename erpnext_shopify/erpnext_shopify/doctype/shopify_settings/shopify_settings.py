@@ -130,9 +130,8 @@ def set_new_attribute_values(item_attr, values):
 def get_attribute_abbr(attribute_value):
 	attribute_value = cstr(attribute_value)
 	if re.findall("[\d]+", attribute_value, flags=re.UNICODE):
-		# if attribute value has a number in it, don't create attribute abbreviation
-		return None
-		
+		# if attribute value has a number in it, pass value as abbrivation
+		return attribute_value 
 	else:
 		return attribute_value[:3]
 
@@ -253,15 +252,13 @@ def get_item_details(item):
 
 def update_item(item_details, item_dict):
 	update_item = frappe.get_doc("Item", item_details.name)
-
 	item_dict["stock_uom"] = item_details.stock_uom
 	item_dict["description"] = item_dict["description"] or update_item.description
-
+	
 	del item_dict['item_code']
 	del item_dict["variant_of"]
 
 	update_item.update(item_dict)
-
 	update_item.save()
 
 def sync_erp_items(price_list, warehouse):
