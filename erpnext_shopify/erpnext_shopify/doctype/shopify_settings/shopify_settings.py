@@ -13,6 +13,7 @@ from erpnext_shopify.utils import (get_request, get_shopify_customers, get_addre
 import requests.exceptions
 from erpnext_shopify.exceptions import ShopifyError
 import base64
+import re
 
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
@@ -94,12 +95,19 @@ def has_variants(item):
 
 def create_attribute(item):
 	attribute = []
+	# shopify item dict
 	for attr in item.get('options'):
 		if not frappe.db.get_value("Item Attribute", attr.get("name"), "name"):
 			frappe.get_doc({
 				"doctype": "Item Attribute",
 				"attribute_name": attr.get("name"),
-				"item_attribute_values": [{"attribute_value":attr_value, "abbr": cstr(attr_value)[:3]} for attr_value in attr.get("values")]
+				"item_attribute_values": [
+					{
+						"attribute_value": attr_value, 
+						"abbr": get_attribute_abbr(attr_value)
+					} 
+					for attr_value in attr.get("values")
+				]
 			}).insert()
 
 		else:
@@ -116,8 +124,17 @@ def set_new_attribute_values(item_attr, values):
 		if not any((d.abbr == attr_value or d.attribute_value == attr_value) for d in item_attr.item_attribute_values):
 			item_attr.append("item_attribute_values", {
 				"attribute_value": attr_value,
-				"abbr": cstr(attr_value)[:3]
+				"abbr": get_attribute_abbr(attr_value)
 			})
+			
+def get_attribute_abbr(attribute_value):
+	attribute_value = cstr(attribute_value)
+	if re.findall("[\d]+", attribute_value, flags=re.UNICODE):
+		# if attribute value has a number in it, don't create attribute abbreviation
+		return None
+		
+	else:
+		return attribute_value[:3]
 
 def create_item(item, warehouse, has_variant=0, attributes=None,variant_of=None):
 	item_dict = {

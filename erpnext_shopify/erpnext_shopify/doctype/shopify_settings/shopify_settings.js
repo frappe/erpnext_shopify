@@ -3,7 +3,7 @@ cur_frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(
 		"query": "erpnext.controllers.queries.tax_account_query",
 		"filters": {
 			"account_type": ["Tax", "Chargeable", "Expense Account"],
-			"company": frappe.defaults.get_default("company")
+			"company": frappe.defaults.get_default("Company")
 		}
 	}
 }
