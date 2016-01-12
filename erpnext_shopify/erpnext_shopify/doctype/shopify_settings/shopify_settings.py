@@ -14,6 +14,7 @@ import requests.exceptions
 from erpnext_shopify.exceptions import ShopifyError
 import base64
 import re
+import datetime
 
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
@@ -109,14 +110,24 @@ def create_attribute(item):
 					for attr_value in attr.get("values")
 				]
 			}).insert()
+			attribute.append({"attribute": attr.get("name")})
 
 		else:
 			"check for attribute values"
 			item_attr = frappe.get_doc("Item Attribute", attr.get("name"))
-			set_new_attribute_values(item_attr, attr.get("values"))
-			item_attr.save()
-
-		attribute.append({"attribute": attr.get("name")})
+			if not item_attr.numeric_values:
+				set_new_attribute_values(item_attr, attr.get("values"))
+				item_attr.save()
+				attribute.append({"attribute": attr.get("name")})
+			else:
+				attribute.append({
+					"attribute": attr.get("name"), 
+					"from_range": item_attr.get("from_range"),
+					"to_range": item_attr.get("to_range"),
+					"increment": item_attr.get("increment"),
+					"numeric_values": item_attr.get("numeric_values")
+				})
+		
 	return attribute
 
 def set_new_attribute_values(item_attr, values):
@@ -153,9 +164,8 @@ def create_item(item, warehouse, has_variant=0, attributes=None,variant_of=None)
 		"default_warehouse": warehouse,
 		"image": get_item_image(item)
 	}
-
+	
 	name, item_details = get_item_details(item)
-
 	if not name:
 		new_item = frappe.get_doc(item_dict)
 		new_item.insert()
@@ -187,14 +197,17 @@ def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list
 
 		for i, variant_attr in enumerate(shopify_variants_attr_list):
 			if variant.get(variant_attr):
+				print attributes[i]
 				attributes[i].update({"attribute_value": get_attribute_value(variant.get(variant_attr), attributes[i])})
 
 		create_item(variant_item, warehouse, 0, attributes, template_item.name)
 
 def get_attribute_value(variant_attr_val, attribute):
-	return frappe.db.sql("""select attribute_value from `tabItem Attribute Value`
+	attribute_value = frappe.db.sql("""select attribute_value from `tabItem Attribute Value`
 		where parent = '{0}' and (abbr = '{1}' or attribute_value = '{2}')""".format(attribute["attribute"], variant_attr_val,
-		variant_attr_val))[0][0]
+		variant_attr_val), as_list=1)
+	
+	return attribute_value[0][0] if len(attribute_value)>0 else cint(variant_attr_val)
 
 def get_item_group(product_type=None):
 	if product_type:
@@ -272,9 +285,14 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	variant_item_code_list = []
 
 	item_data = { "product":
-		{ "title": item.get("item_name"),
-		"body_html": item.get("description"),
-		"product_type": item.get("item_group")}
+		{
+			"title": item.get("item_name"),
+			"body_html": item.get("description"),
+			"product_type": item.get("item_group"),
+			"published_scope": "global",
+			"published_status": "published",
+			"published_at": datetime.datetime.now().isoformat()
+		}
 	}
 
 	if item.get("has_variants"):
@@ -326,7 +344,6 @@ def sync_item_image(item):
 
 	if item.image:
 		img_details = frappe.db.get_value("File", {"file_url": item.image}, ["file_name", "content_hash"])
-
 		if img_details and img_details[0] and img_details[1]:
 			is_private = item.image.startswith("/private/files/")
 			with open(get_files_path(img_details[0].strip("/"), is_private=is_private), "rb") as image_file:
@@ -339,7 +356,15 @@ def sync_item_image(item):
 		if image_info["image"]:
 			try:
 				if not exist_item_image(item.shopify_id, image_info):
-					post_request("/admin/products/{0}/images.json".format(item.shopify_id), image_info)
+					try:
+						post_request("/admin/products/{0}/images.json".format(item.shopify_id), image_info)
+					except requests.exceptions.HTTPError, e:
+						if e.args[0] and e.args[0].startswith("422"):
+							disable_shopify_sync(item)
+						else:
+							disable_shopify_sync(erp_item)
+							raise
+						
 			except ShopifyError:
 				raise ShopifyError
 				
@@ -641,8 +666,12 @@ def update_item_stock(item_code, shopify_settings, bin=None):
 	item = frappe.get_doc("Item", item_code)
 	if item.sync_qty_with_shopify:
 		if not bin:
-			bin = frappe.get_doc("Bin", {"warehouse": shopify_settings.warehouse,
-			"item_code": item_code})
+			if frappe.db.get_value("Bin", {"warehouse": shopify_settings.warehouse,
+				"item_code": item_code}):
+				bin = frappe.get_doc("Bin", {"warehouse": shopify_settings.warehouse,
+					"item_code": item_code})
+			else:
+				bin = None
 
 		if bin:
 			if not item.shopify_id and not item.variant_of:
