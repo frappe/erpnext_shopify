@@ -9,7 +9,8 @@ from frappe.model.document import Document
 from frappe.utils import cstr, flt, nowdate, cint, get_files_path
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
-	get_shopify_items, get_shopify_orders, put_request, disable_shopify_sync, get_shopify_item_image)
+	get_shopify_items, get_shopify_orders, put_request, disable_shopify_sync, get_shopify_item_image, 
+	disable_shopify, sendmail_to_intimate_sync_disabled)
 import requests.exceptions
 from erpnext_shopify.exceptions import ShopifyError
 import base64
@@ -67,7 +68,12 @@ def sync_shopify():
 			update_item_stock_qty()
 
 		except ShopifyError:
-			frappe.db.set_value("Shopify Settings", None, "enable_shopify", 0)
+			disable_shopify()
+			
+		except requests.exceptions.HTTPError, e:
+			if e.args[0] and e.args[0].startswith("402"):
+				disable_shopify()
+				sendmail_to_intimate_sync_disabled(_(""" Your shopify account has been disabled. Payment Required."""))
 
 	elif frappe.local.form_dict.cmd == "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify":
 		frappe.throw(_("""Shopify connector is not enabled. Click on 'Connect to Shopify' to connect ERPNext and your Shopify store."""))
