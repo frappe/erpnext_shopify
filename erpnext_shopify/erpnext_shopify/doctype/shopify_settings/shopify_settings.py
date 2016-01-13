@@ -81,6 +81,7 @@ def sync_shopify_items(warehouse):
 		make_item(warehouse, item)
 
 def make_item(warehouse, item):
+	add_item_weight(item)
 	if has_variants(item):
 		attributes = create_attribute(item)
 		create_item(item, warehouse, 1, attributes)
@@ -88,7 +89,11 @@ def make_item(warehouse, item):
 	else:
 		item["variant_id"] = item['variants'][0]["id"]
 		create_item(item, warehouse)
-
+		
+def add_item_weight(item):
+	item["weight"] = item['variants'][0]["weight"]
+	item["weight_unit"] = item['variants'][0]["weight_unit"]
+	
 def has_variants(item):
 	if len(item.get("options")) >= 1 and "Default Title" not in item.get("options")[0]["values"]:
 		return True
@@ -162,7 +167,9 @@ def create_item(item, warehouse, has_variant=0, attributes=None,variant_of=None)
 		"stock_uom": item.get("uom") or _("Nos"),
 		"stock_keeping_unit": item.get("sku") or get_sku(item),
 		"default_warehouse": warehouse,
-		"image": get_item_image(item)
+		"image": get_item_image(item),
+		"weight_uom": item.get("weight_unit"),
+		"net_weight": item.get("weight")
 	}
 	
 	name, item_details = get_item_details(item)
@@ -192,19 +199,20 @@ def create_item_variants(item, warehouse, attributes, shopify_variants_attr_list
 			"sku": variant.get("sku"),
 			"uom": template_item.stock_uom or _("Nos"),
 			"item_price": variant.get("price"),
-			"variant_id": variant.get("id")
+			"variant_id": variant.get("id"),
+			"weight_unit": variant.get("weight_unit"),
+			"weight": variant.get("weight")
 		}
 
 		for i, variant_attr in enumerate(shopify_variants_attr_list):
 			if variant.get(variant_attr):
-				print attributes[i]
 				attributes[i].update({"attribute_value": get_attribute_value(variant.get(variant_attr), attributes[i])})
 
 		create_item(variant_item, warehouse, 0, attributes, template_item.name)
 
 def get_attribute_value(variant_attr_val, attribute):
 	attribute_value = frappe.db.sql("""select attribute_value from `tabItem Attribute Value`
-		where parent = '{0}' and (abbr = '{1}' or attribute_value = '{2}')""".format(attribute["attribute"], variant_attr_val,
+		where parent = %s and (abbr = %s or attribute_value = %s)""", (attribute["attribute"], variant_attr_val,
 		variant_attr_val), as_list=1)
 	
 	return attribute_value[0][0] if len(attribute_value)>0 else cint(variant_attr_val)
@@ -276,8 +284,9 @@ def update_item(item_details, item_dict):
 
 def sync_erp_items(price_list, warehouse):
 	for item in frappe.db.sql("""select item_code, item_name, item_group,
-		description, has_variants, stock_uom, image, shopify_id, shopify_variant_id, sync_qty_with_shopify
-		from tabItem where sync_with_shopify=1 and (variant_of is null or variant_of = '') 
+		description, has_variants, stock_uom, image, shopify_id, shopify_variant_id, 
+		sync_qty_with_shopify, net_weight, weight_uom from tabItem 
+		where sync_with_shopify=1 and (variant_of is null or variant_of = '') 
 		and (disabled is null or disabled = 0)""", as_dict=1):
 		sync_item_with_shopify(item, price_list, warehouse)
 
@@ -427,6 +436,15 @@ def get_price_and_stock_details(item, warehouse, price_list):
 		"price": flt(price)
 	}
 	
+	if item.net_weight:
+		if item.weight_uom and item.weight_uom.lower() in ["kg", "g", "oz", "lb"]:
+			item_price_and_quantity.update({
+				"weight_unit": item.weight_uom.lower(),
+				"weight": item.net_weight,
+				"grams": get_weight_in_grams(item.net_weight, item.weight_uom)
+			})
+		
+	
 	if item.get("sync_qty_with_shopify"):
 		item_price_and_quantity.update({
 			"inventory_quantity": cint(qty) if qty else 0,
@@ -435,8 +453,18 @@ def get_price_and_stock_details(item, warehouse, price_list):
 		
 	if item.shopify_variant_id:
 		item_price_and_quantity["id"] = item.shopify_variant_id
-
+	
 	return item_price_and_quantity
+	
+def get_weight_in_grams(weight, weight_uom):
+	convert_to_gram = {
+		"kg": 1000,
+		"lb": 453.592,
+		"oz": 28.3495,
+		"g": 1
+	}
+	
+	return weight * convert_to_gram[weight_uom.lower()]
 
 def sync_customers():
 	sync_shopify_customers()
