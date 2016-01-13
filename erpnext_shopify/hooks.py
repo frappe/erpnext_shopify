@@ -44,7 +44,7 @@ fixtures = ["Custom Field"]
 # ------------
 
 # before_install = "erpnext_shopify.install.before_install"
-# after_install = "erpnext_shopify.install.after_install"
+after_install = "erpnext_shopify.after_install.create_weight_uom"
 
 # Desk Notifications
 # ------------------
