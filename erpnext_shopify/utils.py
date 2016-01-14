@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import get_request_session
+from frappe.utils import get_request_session, cstr
 from frappe.exceptions import AuthenticationError, ValidationError
 from functools import wraps
 from frappe import _
@@ -165,7 +165,7 @@ def create_webhooks():
 
 		create_webhook(event, settings.webhook_address)
 
-def disable_shopify_sync(item):
+def disable_shopify_sync_for_item(item):
 	"""Disable Item if not exist on shopify"""
 	frappe.db.rollback()
 	item.sync_with_shopify = 0
@@ -175,13 +175,7 @@ def disable_shopify_sync(item):
 def get_shopify_item_image(shopify_id):
 	return get_request("/admin/products/{0}/images.json".format(shopify_id))["images"]
 
-def disable_shopify():
+def disable_shopify_sync_on_exception():
 	frappe.db.rollback()
 	frappe.db.set_value("Shopify Settings", None, "enable_shopify", 0)
 	frappe.db.commit()
-
-def sendmail_to_intimate_sync_disabled(message):
-	frappe.sendmail(get_system_manager(), subject=_("Shopify Sync has been disabled"), content=message)
-
-def get_system_manager():
-	return frappe.db.sql("select parent from tabUserRole where role='System Manager' and parent != 'Administrator'")[0][0]

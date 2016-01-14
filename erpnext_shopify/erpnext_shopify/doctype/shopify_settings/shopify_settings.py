@@ -4,18 +4,20 @@
 
 from __future__ import unicode_literals
 import frappe
-from frappe import _
-from frappe.model.document import Document
-from frappe.utils import cstr, flt, nowdate, cint, get_files_path
-from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
-from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
-	get_shopify_items, get_shopify_orders, put_request, disable_shopify_sync, get_shopify_item_image, 
-	disable_shopify, sendmail_to_intimate_sync_disabled)
-import requests.exceptions
-from erpnext_shopify.exceptions import ShopifyError
 import base64
 import re
 import datetime
+
+from frappe import _
+from frappe.model.document import Document
+import requests.exceptions
+from frappe.utils.user import get_system_managers
+from erpnext_shopify.exceptions import ShopifyError
+from frappe.utils import cstr, flt, nowdate, cint, get_files_path
+from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
+from erpnext_shopify.utils import (get_request, get_shopify_customers, get_address_type, post_request,
+	get_shopify_items, get_shopify_orders, put_request, disable_shopify_sync_for_item, get_shopify_item_image, 
+	disable_shopify_sync_on_exception)
 
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
@@ -56,25 +58,24 @@ def get_series():
 @frappe.whitelist()
 def sync_shopify():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
-
 	if shopify_settings.enable_shopify:
 		if not frappe.session.user:
 			frappe.set_user("Administrator")
-
 		try :
 			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
 			sync_customers()
 			sync_orders()
 			update_item_stock_qty()
-
-		except ShopifyError:
-			disable_shopify()
 			
+		except ShopifyError:
+			disable_shopify_sync_on_exception()
 		except requests.exceptions.HTTPError, e:
+			#HTTPError: 402 Client Error: Payment Required 
 			if e.args[0] and e.args[0].startswith("402"):
-				disable_shopify()
-				sendmail_to_intimate_sync_disabled(_(""" Your shopify account has been disabled. Payment Required."""))
-
+				disable_shopify_sync_on_exception()
+				content = _("""Shopify has suspended your account till you complete the payment. We have disabled ERPNext Shopify Sync. Please enable it once your complete the payment at Shopify."""
+				frappe.sendmail(get_system_managers(), subject=_("Shopify Sync has been disabled"), content=content))
+					
 	elif frappe.local.form_dict.cmd == "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify":
 		frappe.throw(_("""Shopify connector is not enabled. Click on 'Connect to Shopify' to connect ERPNext and your Shopify store."""))
 
@@ -329,10 +330,10 @@ def sync_item_with_shopify(item, price_list, warehouse):
 			get_request("/admin/products/{}.json".format(item.get("shopify_id")))
 		except requests.exceptions.HTTPError, e:
 			if e.args[0] and e.args[0].startswith("404"):
-				disable_shopify_sync(erp_item)
+				disable_shopify_sync_for_item(erp_item)
 				return
 			else:
-				disable_shopify_sync(erp_item)
+				disable_shopify_sync_for_item(erp_item)
 				raise
 			
 	if not item.get("shopify_id"):
@@ -375,9 +376,9 @@ def sync_item_image(item):
 						post_request("/admin/products/{0}/images.json".format(item.shopify_id), image_info)
 					except requests.exceptions.HTTPError, e:
 						if e.args[0] and e.args[0].startswith("422"):
-							disable_shopify_sync(item)
+							disable_shopify_sync_for_item(item)
 						else:
-							disable_shopify_sync(erp_item)
+							disable_shopify_sync_for_item(erp_item)
 							raise
 						
 			except ShopifyError:
@@ -549,9 +550,14 @@ def sync_shopify_orders():
 		create_order(order)
 
 def validate_customer_and_product(order):
-	if not frappe.db.get_value("Customer", {"shopify_id": order.get("customer").get("id")}, "name"):
-		create_customer(order.get("customer"))
-
+	customer_id = order.get("customer", {}).get("id")
+	if not customer_id:
+		if not frappe.db.get_value("Customer", {"shopify_id": customer_id}, "name"):
+			create_customer(order.get("customer"))
+	else:
+		frappe.msgprint(__("Customer is mandatory to create order"))
+		return False
+	
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in order.get("line_items"):
 		if not frappe.db.get_value("Item", {"shopify_id": item.get("product_id")}, "name"):
