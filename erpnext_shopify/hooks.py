@@ -70,7 +70,7 @@ after_install = "erpnext_shopify.after_install.create_weight_uom"
 
 doc_events = {
 	"Bin": {
-		"on_update": "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.trigger_update_item_stock"
+		"on_update": "erpnext_shopify.sync_products.trigger_update_item_stock"
 	}
 }
 
@@ -79,7 +79,7 @@ doc_events = {
 
 scheduler_events = {
 	"hourly": [
-		"erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify"
+		"erpnext_shopify.api.sync_shopify"
 	]
 }
 
