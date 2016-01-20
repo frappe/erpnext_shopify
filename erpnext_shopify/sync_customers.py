@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from .utils import get_address_type
 from .exceptions import ShopifyError
-from .shopify_requests import get_shopify_customers, post_request
+from .shopify_requests import get_shopify_customers, post_request, put_request
 
 def sync_customers():
 	sync_shopify_customers()
@@ -10,7 +10,7 @@ def sync_customers():
 
 def sync_shopify_customers():
 	for shopify_customer in get_shopify_customers():
-		if not frappe.db.get_value("Customer", {"shopify_customer_id": customer.get('id')}, "name"):
+		if not frappe.db.get_value("Customer", {"shopify_customer_id": shopify_customer.get('id')}, "name"):
 			create_customer(shopify_customer)
 
 def create_customer(shopify_customer):
@@ -57,27 +57,78 @@ def create_customer_address(customer, shopify_customer):
 def sync_erpnext_customers():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
-	last_sync_condition = ""
+	condition = ["sync_with_shopify = 1"]
+	
 	if shopify_settings.last_sync_datetime:
-		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
+		last_sync_condition = "modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
+		condition.append(last_sync_condition)
 	
-	customer_query = """select name, customer_name from tabCustomer 
-		where ifnull(shopify_customer_id, '') = '' and sync_with_shopify = 1 %s""" % last_sync_condition
-	
+	customer_query = """select name, customer_name, shopify_customer_id from tabCustomer 
+		where {0}""".format(" and ".join(condition))
+		
 	for customer in frappe.db.sql(customer_query, as_dict=1):
-		shopify_customer = {
-			"first_name": customer['customer_name']
-		}
+		if not customer.shopify_customer_id:
+			create_customer_to_shopify(customer)
+		else:
+			update_customer_to_shopify(customer, last_sync_condition)
 
-		addresses = frappe.db.sql("""select addr.address_line1 as address1, addr.address_line2 as address2,
-			addr.city as city, addr.state as province, addr.country as country, addr.pincode as zip 
-			from tabAddress addr where addr.customer ='%s' """%(customer['customer_name']), as_dict=1)
+def create_customer_to_shopify(customer):
+	shopify_customer = {
+		"first_name": customer['customer_name']
+	}
+	
+	shopify_customer = post_request("/admin/customers.json", { "customer": shopify_customer})
+	
+	customer = frappe.get_doc("Customer", customer['name'])
+	customer.shopify_customer_id = shopify_customer['customer'].get("id")
+	customer.save()
+	
+	addresses = get_customer_addresses(customer.as_dict())
+	for address in addresses:
+		sync_customer_address(customer, address)
 
-		if addresses:
-			shopify_customer["addresses"] = addresses
+def sync_customer_address(customer, address):
+	address_name = address.pop("name")
 
-		shopify_customer = post_request("/admin/customers.json", { "customer": shopify_customer})
+	shopify_address = post_request("/admin/customers/{0}/addresses.json".format(customer.shopify_customer_id),
+	{"address": address})
+		
+	address = frappe.get_doc("Address", address_name)
+	address.shopify_address_id = shopify_address['customer_address'].get("id")
+	address.save()
+	
+def update_customer_to_shopify(customer, last_sync_condition):
+	shopify_customer = {
+		"first_name": customer['customer_name']
+	}
+	
+	put_request("/admin/customers/{0}.json".format(customer.shopify_customer_id),\
+	{ "customer": shopify_customer})
+	
+	update_address_details(customer, last_sync_condition)
 
-		customer = frappe.get_doc("Customer", customer['name'])
-		customer.shopify_customer_id = shopify_customer['customer'].get("id")
-		customer.save()
+def update_address_details(customer, last_sync_condition):
+	customer_addresses = get_customer_addresses(customer, last_sync_condition)
+	for address in customer_addresses:
+		if address.shopify_address_id:
+			address_name = address.pop("name")
+			
+			url = "/admin/customers/{0}/addresses/{1}.json".format(customer.shopify_customer_id,\
+			 address.shopify_address_id)
+			put_request(url, { "address": address})
+			
+		else:
+			sync_customer_address(customer, address)
+			
+def get_customer_addresses(customer, last_sync_cond=None):
+	conditions = ["addr.customer = '{0}' ".format(customer['name'])]
+	
+	if last_sync_cond:
+		conditions.append(last_sync_cond)
+	
+	address_query = """select addr.name, addr.address_line1 as address1, addr.address_line2 as address2,
+		addr.city as city, addr.state as province, addr.country as country, addr.pincode as zip, 
+		addr.shopify_address_id as id from tabAddress addr 
+		where {0}""".format(' and '.join(conditions)) 
+			
+	return frappe.db.sql(address_query, as_dict=1)

@@ -415,8 +415,8 @@ def trigger_update_item_stock(doc, method):
 
 def update_item_stock_qty():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
-	for item in frappe.get_all("Item", fields=['name', "item_code"], filters={"sync_with_shopify": 1, 
-		"disabled": ("!=", 1)}):
+	for item in frappe.get_all("Item", fields=['name', "item_code"], 
+		filters={"sync_with_shopify": 1, "disabled": ("!=", 1)}):
 		update_item_stock(item.item_code, shopify_settings)
 
 def update_item_stock(item_code, shopify_settings, bin=None):

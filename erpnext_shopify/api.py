@@ -38,5 +38,5 @@ def sync_shopify():
 				content = _("""Shopify has suspended your account till you complete the payment. We have disabled ERPNext Shopify Sync. Please enable it once your complete the payment at Shopify.""")
 				frappe.sendmail(get_system_managers(), subject=_("Shopify Sync has been disabled"), content=content)
 					
-	elif frappe.local.form_dict.cmd == "erpnext_shopify.erpnext_shopify.doctype.shopify_settings.shopify_settings.sync_shopify":
+	elif frappe.local.form_dict.cmd == "erpnext_shopify.api.sync_shopify":
 		frappe.throw(_("""Shopify connector is not enabled. Click on 'Connect to Shopify' to connect ERPNext and your Shopify store."""))

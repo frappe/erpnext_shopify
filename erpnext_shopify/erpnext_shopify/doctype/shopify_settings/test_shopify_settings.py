@@ -22,7 +22,6 @@ class ShopifySettings(unittest.TestCase):
 		if shopify_settings.enable_shopify:
 			self.enabled = True
 			
-		
 	def test_product(self):
 		if self.enabled:
 			shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
