@@ -226,12 +226,17 @@ def update_item(item_details, item_dict):
 def sync_erpnext_items(price_list, warehouse):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
-	for item in frappe.db.sql("""select item_code, item_name, item_group,
+	last_sync_condition = ""
+	if shopify_settings.last_sync_datetime:
+		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
+	
+	item_query = """select item_code, item_name, item_group,
 		description, has_variants, stock_uom, image, shopify_product_id, shopify_variant_id, 
 		sync_qty_with_shopify, net_weight, weight_uom from tabItem 
 		where sync_with_shopify=1 and (variant_of is null or variant_of = '') 
-		and (disabled is null or disabled = 0) 
-		and modified >= %s """, shopify_settings.last_sync_datetime,as_dict=1):
+		and (disabled is null or disabled = 0) %s """ % last_sync_condition
+	
+	for item in frappe.db.sql(item_query, as_dict=1):
 		sync_item_with_shopify(item, price_list, warehouse)
 
 def sync_item_with_shopify(item, price_list, warehouse):
@@ -287,11 +292,12 @@ def sync_item_image(item):
 			is_private = item.image.startswith("/private/files/")
 			
 			with open(get_files_path(img_details[0].strip("/"), is_private=is_private), "rb") as image_file:
-			    image_info["image"]["attachment"] = base64.b64encode(image_file.read())	
+				print "here"
+				image_info["image"]["attachment"] = base64.b64encode(image_file.read())	
 			image_info["image"]["filename"] = img_details[0]
 			
 			#to avoid 422 : Unprocessable Entity
-			if not image_info["image"]["attachment"] or image_info["image"]["filename"]:
+			if not image_info["image"]["attachment"] or not image_info["image"]["filename"]:
 				return False 
 
 		elif item.image.startswith("http") or item.image.startswith("ftp"):
@@ -307,8 +313,8 @@ def sync_item_image(item):
 
 def validate_image_url(url):
 	""" check on given url image exists or not"""
-	res = request.get(url)
-	if res.content-type in ('image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/tiff'):
+	res = requests.get(url)
+	if res.headers.get("content-type") in ('image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/tiff'):
 		return True
 	return False
 		

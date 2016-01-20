@@ -28,7 +28,7 @@ def valid_customer_and_product(shopify_order):
 	
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in shopify_order.get("line_items"):
-		if not frappe.db.get_value("Item", {"shopify_id": item.get("product_id")}, "name"):
+		if not frappe.db.get_value("Item", {"shopify_product_id": item.get("product_id")}, "name"):
 			item = get_request("/admin/products/{}.json".format(item.get("product_id")))["product"]
 			make_item(warehouse, item)
 	
@@ -50,7 +50,7 @@ def create_sales_order(shopify_order, shopify_settings):
 			"doctype": "Sales Order",
 			"naming_series": shopify_settings.sales_order_series or "SO-Shopify-",
 			"shopify_order_id": shopify_order.get("id"),
-			"customer": frappe.db.get_value("Customer", {"shopify_id": shopify_order.get("customer").get("id")}, "name"),
+			"customer": frappe.db.get_value("Customer", {"shopify_customer_id": shopify_order.get("customer").get("id")}, "name"),
 			"delivery_date": nowdate(),
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
@@ -68,7 +68,7 @@ def create_sales_order(shopify_order, shopify_settings):
 	return so
 
 def create_sales_invoice(shopify_order, shopify_settings, so):
-	if not frappe.db.get_value("Sales Invoice", {"shopify_id": shopify_order.get("id")}, "name") and so.docstatus==1 \
+	if not frappe.db.get_value("Sales Invoice", {"shopify_order_id": shopify_order.get("id")}, "name") and so.docstatus==1 \
 		and not so.per_billed:
 		si = make_sales_invoice(so.name)
 		si.shopify_order_id = shopify_order.get("id")
@@ -79,7 +79,7 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 
 def create_delivery_note(shopify_order, shopify_settings, so):
 	for fulfillment in shopify_order.get("fulfillments"):
-		if not frappe.db.get_value("Delivery Note", {"shopify_id": fulfillment.get("id")}, "name") and so.docstatus==1:
+		if not frappe.db.get_value("Delivery Note", {"shopify_order_id": fulfillment.get("id")}, "name") and so.docstatus==1:
 			dn = make_delivery_note(so.name)
 			dn.shopify_order_id = fulfillment.get("id")
 			dn.naming_series = shopify_settings.delivery_note_series or "DN-Shopify-"
@@ -91,10 +91,7 @@ def get_fulfillment_items(dn_items, fulfillment_items, shopify_settings):
 		for item in dn_items:
 			if get_item_code(shopify_item) == item.item_code:
 				dn_item.update({"qty": item.get("quantity")})
-	#
-	# return [dn_item.update({"qty": item.get("quantity")}) for item in fulfillment_items for dn_item in dn_items\
-	# 	 if get_item_code(item) == dn_item.item_code]
-
+				
 def get_discounted_amount(order):
 	discounted_amount = 0.0
 	for discount in order.get("discount_codes"):
@@ -103,8 +100,8 @@ def get_discounted_amount(order):
 
 def get_order_items(order_items, shopify_settings):
 	items = []
-	for item in order_items:
-		item_code = get_item_code(item)
+	for shopify_item in order_items:
+		item_code = get_item_code(shopify_item)
 		items.append({
 			"item_code": item_code,
 			"item_name": item.get("name"),
@@ -115,10 +112,10 @@ def get_order_items(order_items, shopify_settings):
 		})
 	return items
 
-def get_item_code(item):
-	item_code = frappe.db.get_value("Item", {"shopify_id": item.get("variant_id")}, "item_code")
+def get_item_code(shopify_item):
+	item_code = frappe.db.get_value("Item", {"shopify_variant_id": shopify_item.get("variant_id")}, "item_code")
 	if not item_code:
-		item_code = frappe.db.get_value("Item", {"shopify_id": item.get("product_id")}, "item_code")
+		item_code = frappe.db.get_value("Item", {"shopify_product_id": shopify_item.get("product_id")}, "item_code")
 
 	return item_code
 

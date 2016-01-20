@@ -57,11 +57,15 @@ def create_customer_address(customer, shopify_customer):
 def sync_erpnext_customers():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
-	for customer in frappe.db.sql("""select name, customer_name from tabCustomer 
-		where ifnull(shopify_customer_id, '') = '' and sync_with_shopify = 1 
-		and modified >= %s """, shopify_settings.last_sync_datetime, as_dict=1):
-		
-		cust = {
+	last_sync_condition = ""
+	if shopify_settings.last_sync_datetime:
+		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
+	
+	customer_query = """select name, customer_name from tabCustomer 
+		where ifnull(shopify_customer_id, '') = '' and sync_with_shopify = 1 %s""" % last_sync_condition
+	
+	for customer in frappe.db.sql(customer_query, as_dict=1):
+		shopify_customer = {
 			"first_name": customer['customer_name']
 		}
 
@@ -70,10 +74,10 @@ def sync_erpnext_customers():
 			from tabAddress addr where addr.customer ='%s' """%(customer['customer_name']), as_dict=1)
 
 		if addresses:
-			cust["addresses"] = addresses
+			shopify_customer["addresses"] = addresses
 
-		cust = post_request("/admin/customers.json", { "customer": cust})
+		shopify_customer = post_request("/admin/customers.json", { "customer": shopify_customer})
 
 		customer = frappe.get_doc("Customer", customer['name'])
-		customer.shopify_customer_id = cust['customer'].get("id")
+		customer.shopify_customer_id = shopify_customer['customer'].get("id")
 		customer.save()

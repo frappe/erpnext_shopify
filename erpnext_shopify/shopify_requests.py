@@ -95,8 +95,8 @@ def get_shopify_items():
 			filter_condition))['products'])
 	return shopify_products
 
-def get_shopify_item_image(shopify_id):
-	return get_request("/admin/products/{0}/images.json".format(shopify_id))["images"]
+def get_shopify_item_image(shopify_product_id):
+	return get_request("/admin/products/{0}/images.json".format(shopify_product_id))["images"]
 	
 def get_shopify_orders():
 	shopify_orders = []
