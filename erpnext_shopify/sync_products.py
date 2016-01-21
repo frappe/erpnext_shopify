@@ -15,22 +15,23 @@ from .shopify_requests import (get_request, post_request, get_shopify_items, put
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
 def sync_products(price_list, warehouse):
-	sync_shopify_items(warehouse)
-	sync_erpnext_items(price_list, warehouse)
+	shopify_item_list = [] 
+	sync_shopify_items(warehouse, shopify_item_list)
+	sync_erpnext_items(price_list, warehouse, shopify_item_list)
 
-def sync_shopify_items(warehouse):
+def sync_shopify_items(warehouse, shopify_item_list):
 	for shopify_item in get_shopify_items():
-		make_item(warehouse, shopify_item)
+		make_item(warehouse, shopify_item, shopify_item_list)
 
-def make_item(warehouse, shopify_item):
+def make_item(warehouse, shopify_item, shopify_item_list):
 	add_item_weight(shopify_item)
 	if has_variants(shopify_item):
 		attributes = create_attribute(shopify_item)
-		create_item(shopify_item, warehouse, 1, attributes)
-		create_item_variants(shopify_item, warehouse, attributes, shopify_variants_attr_list)
+		create_item(shopify_item, warehouse, 1, attributes, shopify_item_list=shopify_item_list)
+		create_item_variants(shopify_item, warehouse, attributes, shopify_variants_attr_list, shopify_item_list=shopify_item_list)
 	else:
 		shopify_item["variant_id"] = shopify_item['variants'][0]["id"]
-		create_item(shopify_item, warehouse)
+		create_item(shopify_item, warehouse, shopify_item_list=shopify_item_list)
 		
 def add_item_weight(shopify_item):
 	shopify_item["weight"] = shopify_item['variants'][0]["weight"]
@@ -56,7 +57,7 @@ def create_attribute(shopify_item):
 					} 
 					for attr_value in attr.get("values")
 				]
-			}).insert()
+			}).insert()			
 			attribute.append({"attribute": attr.get("name")})
 
 		else:
@@ -94,7 +95,7 @@ def get_attribute_abbr(attribute_value):
 	else:
 		return attribute_value[:3]
 
-def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_of=None):
+def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_of=None, shopify_item_list=[]):
 	item_dict = {
 		"doctype": "Item",
 		"shopify_product_id": shopify_item.get("id"),
@@ -127,11 +128,12 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 	else:
 		update_item(item_details, item_dict)
 		name = item_details.name
-		
+	
+	shopify_item_list.append(name)
 	if not has_variant:
 		add_to_price_list(shopify_item, name)
 
-def create_item_variants(shopify_item, warehouse, attributes, shopify_variants_attr_list):
+def create_item_variants(shopify_item, warehouse, attributes, shopify_variants_attr_list, shopify_item_list):
 	template_item = frappe.db.get_value("Item", filters={"shopify_product_id": shopify_item.get("id")},
 		fieldname=["name", "stock_uom"], as_dict=True)
 
@@ -148,18 +150,17 @@ def create_item_variants(shopify_item, warehouse, attributes, shopify_variants_a
 			"weight_unit": variant.get("weight_unit"),
 			"weight": variant.get("weight")
 		}
-
+		
 		for i, variant_attr in enumerate(shopify_variants_attr_list):
 			if variant.get(variant_attr):
 				attributes[i].update({"attribute_value": get_attribute_value(variant.get(variant_attr), attributes[i])})
 
-		create_item(shopify_item_variant, warehouse, 0, attributes, template_item.name)
+		create_item(shopify_item_variant, warehouse, 0, attributes, template_item.name, shopify_item_list=shopify_item_list)
 
 def get_attribute_value(variant_attr_val, attribute):
 	attribute_value = frappe.db.sql("""select attribute_value from `tabItem Attribute Value`
 		where parent = %s and (abbr = %s or attribute_value = %s)""", (attribute["attribute"], variant_attr_val,
 		variant_attr_val), as_list=1)
-	
 	return attribute_value[0][0] if len(attribute_value)>0 else cint(variant_attr_val)
 
 def get_item_group(product_type=None):
@@ -225,21 +226,22 @@ def update_item(item_details, item_dict):
 	item.update(item_dict)
 	item.save()
 
-def sync_erpnext_items(price_list, warehouse):
+def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	last_sync_condition = ""
 	if shopify_settings.last_sync_datetime:
 		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
 	
-	item_query = """select item_code, item_name, item_group,
+	item_query = """select name, item_code, item_name, item_group,
 		description, has_variants, stock_uom, image, shopify_product_id, shopify_variant_id, 
 		sync_qty_with_shopify, net_weight, weight_uom from tabItem 
 		where sync_with_shopify=1 and (variant_of is null or variant_of = '') 
 		and (disabled is null or disabled = 0) %s """ % last_sync_condition
 	
 	for item in frappe.db.sql(item_query, as_dict=1):
-		sync_item_with_shopify(item, price_list, warehouse)
+		if item.name not in shopify_item_list:
+			sync_item_with_shopify(item, price_list, warehouse)
 
 def sync_item_with_shopify(item, price_list, warehouse):
 	variant_item_code_list = []
@@ -294,7 +296,6 @@ def sync_item_image(item):
 			is_private = item.image.startswith("/private/files/")
 			
 			with open(get_files_path(img_details[0].strip("/"), is_private=is_private), "rb") as image_file:
-				print "here"
 				image_info["image"]["attachment"] = base64.b64encode(image_file.read())	
 			image_info["image"]["filename"] = img_details[0]
 			

@@ -27,7 +27,6 @@ def sync_shopify():
 			sync_orders()
 			update_item_stock_qty()
 			frappe.db.set_value("Shopify Settings", None, "last_sync_datetime", frappe.utils.now())
-			
 		except ShopifyError:
 			disable_shopify_sync_on_exception()
 			

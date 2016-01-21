@@ -9,11 +9,9 @@ from .shopify_requests import get_request, get_shopify_orders
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 
 def sync_orders():
-	print """dadaaa"""
 	sync_shopify_orders()
 
 def sync_shopify_orders():
-	print get_shopify_orders()
 	for shopify_order in get_shopify_orders():
 		if valid_customer_and_product(shopify_order):
 			create_order(shopify_order)
@@ -37,7 +35,6 @@ def valid_customer_and_product(shopify_order):
 	return True
 
 def create_order(shopify_order, company=None):
-	print shopify_order
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	so = create_sales_order(shopify_order, shopify_settings, company)
 	if shopify_order.get("financial_status") == "paid":
