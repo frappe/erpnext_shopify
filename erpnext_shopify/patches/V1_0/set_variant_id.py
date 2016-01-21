@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 import frappe
-from erpnext_shopify.utils import get_shopify_items
+from erpnext_shopify.shopify_requests import get_shopify_items
 from frappe.utils import cint
 from frappe import _
 from erpnext_shopify.exceptions import ShopifyError
