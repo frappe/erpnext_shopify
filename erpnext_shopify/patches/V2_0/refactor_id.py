@@ -16,8 +16,6 @@ def execute():
 		"Sales Order": "shopify_order_id", 
 		"Delivery Note": "shopify_order_id", 
 		"Sales Invoice": "shopify_order_id"}.items():
-
-		frappe.db.sql("update `tab%s` set %s=shopify_id" % (doctype, column))
-
-	frappe.db.commit()
-	
+		
+		if "shopify_id" in frappe.db.get_table_columns(doctype):
+			frappe.db.sql("update `tab%s` set %s=shopify_id" % (doctype, column))	
