@@ -15,22 +15,24 @@ def sync_shopify_customers():
 
 def create_customer(shopify_customer):
 	erp_cust = None
+	
 	cust_name = (shopify_customer.get("first_name") + " " + (shopify_customer.get("last_name") \
 		and  shopify_customer.get("last_name") or "")) if shopify_customer.get("first_name")\
 		 else shopify_customer.get("email")
-
+	
 	try:
 		customer = frappe.get_doc({
 			"doctype": "Customer",
 			"name": shopify_customer.get("id"),
 			"customer_name" : cust_name,
 			"shopify_customer_id": shopify_customer.get("id"),
+			"sync_with_shopify": 1,
 			"customer_group": "Commercial",
 			"territory": "All Territories",
 			"customer_type": "Company"
 		}).insert()
-	except:
-		pass
+	except Exception, e:
+		raise e
 
 	if customer:
 		create_customer_address(customer, shopify_customer)

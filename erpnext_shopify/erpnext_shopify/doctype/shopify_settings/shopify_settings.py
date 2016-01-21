@@ -4,6 +4,7 @@
 
 from __future__ import unicode_literals
 import frappe
+from frappe import _
 import requests.exceptions
 from frappe.model.document import Document
 from erpnext_shopify.shopify_requests import get_request
