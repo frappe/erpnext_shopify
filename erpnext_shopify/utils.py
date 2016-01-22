@@ -2,10 +2,6 @@ import frappe
 import json
 from frappe.utils import cstr
 
-def get_address_type(i):
-	return ["Billing", "Shipping", "Office", "Personal", "Plant", "Postal", "Shop", "Subsidiary", 
-	"Warehouse", "Other"][i]
-
 def disable_shopify_sync_for_item(item):
 	"""Disable Item if not exist on shopify"""
 	frappe.db.rollback()
