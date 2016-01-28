@@ -33,20 +33,23 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 		frm.toggle_reqd("sales_order_series", true);
 		frm.toggle_reqd("sales_invoice_series", true);
 		frm.toggle_reqd("delivery_note_series", true);
+		frm.toggle_reqd("customer_group", true);
 		
-		// cur_frm.add_custom_button(__('Sync Shopify'),
-// 			function() {
-// 				frappe.call({
-// 					method:"erpnext_shopify.api.sync_shopify",
-// 					freeze: true,
-// 					freeze_message: "Syncing",
-// 					callback:function(r){
-// 						if(!r.exc){
-// 							frappe.msgprint(__("Sync Completed!!"))
-// 						}
-// 					}
-// 				})
-// 			}, 'icon-sitemap')
+		if (frm.doc.last_sync_datetime) {
+			cur_frm.add_custom_button(__('Sync Shopify'),
+				function() {
+					frappe.call({
+						method:"erpnext_shopify.api.sync_shopify",
+						freeze: true,
+						freeze_message: "Syncing",
+						callback:function(r){
+							if(!r.exc){
+								frappe.msgprint(__("Sync Completed!!"))
+							}
+						}
+					})
+				}, 'icon-sitemap')
+		}
 	}
 	if(!frm.doc.access_token && (!frm.doc.api_key || !frm.doc.password)) {
 		cur_frm.add_custom_button(__("Connect to Shopify"), 

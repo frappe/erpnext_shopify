@@ -6,7 +6,7 @@ from .shopify_requests import get_shopify_customers, post_request, put_request
 def sync_customers():
 	shopify_customer_list = []
 	sync_shopify_customers(shopify_customer_list)
-	sync_erpnext_customers()
+	sync_erpnext_customers(shopify_customer_list)
 
 def sync_shopify_customers(shopify_customer_list):
 	for shopify_customer in get_shopify_customers():
@@ -15,6 +15,7 @@ def sync_shopify_customers(shopify_customer_list):
 
 def create_customer(shopify_customer, shopify_customer_list):
 	erp_cust = None
+	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	cust_name = (shopify_customer.get("first_name") + " " + (shopify_customer.get("last_name") \
 		and  shopify_customer.get("last_name") or "")) if shopify_customer.get("first_name")\
@@ -27,16 +28,18 @@ def create_customer(shopify_customer, shopify_customer_list):
 			"customer_name" : cust_name,
 			"shopify_customer_id": shopify_customer.get("id"),
 			"sync_with_shopify": 1,
-			"customer_group": _("Commercial"),
+			"customer_group": shopify_settings.customer_group,
 			"territory": _("All Territories"),
-			"customer_type": _("Company")
+			"customer_type": _("Individual")
 		}).insert()
 	except Exception, e:
 		raise e
 
 	if customer:
 		create_customer_address(customer, shopify_customer)
-
+	
+	shopify_customer_list.append(shopify_customer.get("id"))
+	
 def create_customer_address(customer, shopify_customer):
 	for i, address in enumerate(shopify_customer.get("addresses")):		
 		address_title, address_type = get_address_title_and_type(customer.customer_name, i)	
@@ -66,7 +69,7 @@ def get_address_title_and_type(customer_name, index):
 		
 	return address_title, address_type 
 	
-def sync_erpnext_customers():
+def sync_erpnext_customers(shopify_customer_list):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	condition = ["sync_with_shopify = 1"]
@@ -82,8 +85,10 @@ def sync_erpnext_customers():
 	for customer in frappe.db.sql(customer_query, as_dict=1):
 		if not customer.shopify_customer_id:
 			create_customer_to_shopify(customer)
+			
 		else:
-			update_customer_to_shopify(customer, last_sync_condition)
+			if customer.shopify_customer_id not in shopify_customer_list:
+				update_customer_to_shopify(customer, last_sync_condition)
 
 def create_customer_to_shopify(customer):
 	shopify_customer = {
