@@ -167,12 +167,11 @@ def get_attribute_value(variant_attr_val, attribute):
 	return attribute_value[0][0] if len(attribute_value)>0 else cint(variant_attr_val)
 
 def get_item_group(product_type=None):
-	# get parent item group by checking lft = 1
 	parent_item_group = frappe.utils.nestedset.get_root_of("Item Group")
 	
 	if product_type:
 		if not frappe.db.get_value("Item Group", product_type, "name"):
-			item_group = frappe.get_doc({
+			item_goup = frappe.get_doc({
 				"doctype": "Item Group",
 				"item_group_name": product_type,
 				"parent_item_group": parent_item_group,
@@ -183,6 +182,7 @@ def get_item_group(product_type=None):
 			return product_type
 	else:
 		return parent_item_group
+
 
 def get_sku(item):
 	if item.get("variants"):
