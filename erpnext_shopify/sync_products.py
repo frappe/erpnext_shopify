@@ -115,7 +115,8 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"default_warehouse": warehouse,
 		"image": get_item_image(shopify_item),
 		"weight_uom": shopify_item.get("weight_unit"),
-		"net_weight": shopify_item.get("weight")
+		"net_weight": shopify_item.get("weight"),
+		"default_supplier": get_supplier(shopify_item)
 	}
 	
 	item_details = get_item_details(shopify_item)
@@ -164,18 +165,21 @@ def get_attribute_value(variant_attr_val, attribute):
 	return attribute_value[0][0] if len(attribute_value)>0 else cint(variant_attr_val)
 
 def get_item_group(product_type=None):
+	# get parent item group by checking lft = 1
+	
 	if product_type:
 		if not frappe.db.get_value("Item Group", product_type, "name"):
-			return frappe.get_doc({
+			item_group = frappe.get_doc({
 				"doctype": "Item Group",
 				"item_group_name": product_type,
-				"parent_item_group": _("All Item Groups"),
+				"parent_item_group": frappe.utils.nestedset.get_root_of("Item Group"),
 				"is_group": "No"
-			}).insert().name
+			}).insert()
+			return item_group.name
 		else:
 			return product_type
 	else:
-		return _("All Item Groups")
+		return frappe.utils.nestedset.get_root_of("Item Group")
 
 def get_sku(item):
 	if item.get("variants"):
@@ -200,6 +204,20 @@ def get_item_image(shopify_item):
 	if shopify_item.get("image"):
 		return shopify_item.get("image").get("src")
 	return None
+
+def get_supplier(shopify_item):
+	if shopify_item.get("vendor"):
+		if not frappe.db.get_value("Supplier", {"supplier_name": shopify_item.get("vendor")}, "name"):
+			supplier = frappe.get_doc({
+				"doctype": "Supplier",
+				"supplier_name": shopify_item.get("vendor"),
+				"supplier_type": frappe.db.sql("select name from `tabSupplier Type` limit 1")[0][0]
+			}).insert()
+			return supplier.name
+		else:
+			return shopify_item.get("vendor")
+	else:
+		return ""
 
 def get_item_details(shopify_item):
 	item_details = {}
@@ -235,7 +253,7 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 	
 	item_query = """select name, item_code, item_name, item_group,
 		description, has_variants, stock_uom, image, shopify_product_id, shopify_variant_id, 
-		sync_qty_with_shopify, net_weight, weight_uom from tabItem 
+		sync_qty_with_shopify, net_weight, weight_uom, default_supplier from tabItem 
 		where sync_with_shopify=1 and (variant_of is null or variant_of = '') 
 		and (disabled is null or disabled = 0) %s """ % last_sync_condition
 	
@@ -251,6 +269,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 			"title": item.get("item_name"),
 			"body_html": item.get("description"),
 			"product_type": item.get("item_group"),
+			"vendor": item.get("default_supplier"),
 			"published_scope": "global",
 			"published_status": "published",
 			"published_at": datetime.datetime.now().isoformat()
