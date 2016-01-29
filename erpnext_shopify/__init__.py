@@ -1,0 +1,1 @@
+from erpnext_shopify.__version__ import __version__
