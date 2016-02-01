@@ -22,7 +22,7 @@ def sync_products(price_list, warehouse):
 def sync_shopify_items(warehouse, shopify_item_list):
 	for shopify_item in get_shopify_items():
 		make_item(warehouse, shopify_item, shopify_item_list)
-
+		
 def make_item(warehouse, shopify_item, shopify_item_list):
 	add_item_weight(shopify_item)
 	if has_variants(shopify_item):
@@ -119,8 +119,8 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"net_weight": shopify_item.get("weight"),
 		"default_supplier": get_supplier(shopify_item)
 	}
-	
-	if not is_item_exists(item_dict, attributes):
+		
+	if not is_item_exists(item_dict, attributes, shopify_item_list=shopify_item_list):
 		item_details = get_item_details(shopify_item)
 		if not item_details:
 			new_item = frappe.get_doc(item_dict)
@@ -130,10 +130,11 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		else:
 			update_item(item_details, item_dict)
 			name = item_details.name
-
-		shopify_item_list.append(name)
+		
 		if not has_variant:
 			add_to_price_list(shopify_item, name)
+		
+		frappe.db.commit()
 
 def create_item_variants(shopify_item, warehouse, attributes, shopify_variants_attr_list, shopify_item_list):
 	template_item = frappe.db.get_value("Item", filters={"shopify_product_id": shopify_item.get("id")},
@@ -171,7 +172,7 @@ def get_item_group(product_type=None):
 	
 	if product_type:
 		if not frappe.db.get_value("Item Group", product_type, "name"):
-			item_goup = frappe.get_doc({
+			item_group = frappe.get_doc({
 				"doctype": "Item Group",
 				"item_group_name": product_type,
 				"parent_item_group": parent_item_group,
@@ -247,43 +248,53 @@ def get_item_details(shopify_item):
 			["name", "stock_uom", "item_name"], as_dict=1)
 		return item_details
 
-def is_item_exists(shopify_item, attributes=None):	
-	item = frappe.get_doc("Item", {"item_name": shopify_item.get("item_name")})
+def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):	
+	name = frappe.db.get_value("Item", {"item_name": shopify_item.get("item_name")})
+	if name:
+		item = frappe.get_doc("Item", name)
+	
+		shopify_item_list.append(item.name)
 		
-	if not item.shopify_product_id:			
-		item.shopify_product_id = shopify_item.get("shopify_product_id")
-		item.shopify_variant_id = shopify_item.get("shopify_variant_id")
-		item.save()
+		if not item.shopify_product_id:			
+			item.shopify_product_id = shopify_item.get("shopify_product_id")
+			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
+			item.save()
 		
-		return False
+			return False
 
-	if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):		
-		variant_of = frappe.db.get_value("Item", {"shopify_product_id": item.shopify_product_id}, "name")
+		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):		
+			variant_of = frappe.db.get_value("Item", {"shopify_product_id": item.shopify_product_id}, "name")
 		
-		# create conditions for all item attributes,
-		# as we are putting condition basis on OR it will fetch all items matching either of conditions
-		# thus comparing matching conditions with len(attributes)
-		# which will give exact matching variant item.
+			shopify_item_list.append(variant_of)
 		
-		conditions = ["(iv.attribute='{0}' and iv.attribute_value = '{1}')"\
-			.format(attr.get("attribute"), attr.get("attribute_value")) for attr in attributes]
+			# create conditions for all item attributes,
+			# as we are putting condition basis on OR it will fetch all items matching either of conditions
+			# thus comparing matching conditions with len(attributes)
+			# which will give exact matching variant item.
 		
-		conditions = "( {0} ) and iv.parent = it.name ) = {1}".format(" or ".join(conditions), len(attributes)) 
+			conditions = ["(iv.attribute='{0}' and iv.attribute_value = '{1}')"\
+				.format(attr.get("attribute"), attr.get("attribute_value")) for attr in attributes]
 		
-		parent = frappe.db.sql(""" select * from tabItem it where 
-			( select count(*) from `tabItem Variant Attribute` iv 
-				where {conditions} and it.variant_of = %s """.format(conditions=conditions) , 
-			variant_of, as_list=1)
+			conditions = "( {0} ) and iv.parent = it.name ) = {1}".format(" or ".join(conditions), len(attributes)) 
+		
+			parent = frappe.db.sql(""" select * from tabItem it where 
+				( select count(*) from `tabItem Variant Attribute` iv 
+					where {conditions} and it.variant_of = %s """.format(conditions=conditions) , 
+				variant_of, as_list=1)
 				
-		if parent:
-			variant = frappe.get_doc("Item", parent[0][0])
-			variant.shopify_product_id = shopify_item.get("shopify_product_id")
-			variant.shopify_variant_id = shopify_item.get("shopify_variant_id")
-			variant.save()
+			if parent:
+				variant = frappe.get_doc("Item", parent[0][0])
+				variant.shopify_product_id = shopify_item.get("shopify_product_id")
+				variant.shopify_variant_id = shopify_item.get("shopify_variant_id")
+				variant.save()
 				 
-		return False
+			return False
 		
-	return True
+		return True
+		
+	else:
+		shopify_item_list.append(shopify_item.get("shopify_product_id"))
+		return False
 
 def update_item(item_details, item_dict):
 	item = frappe.get_doc("Item", item_details.name)
@@ -344,8 +355,10 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	if not item.get("shopify_product_id"):
 		new_item = post_request("/admin/products.json", item_data)
 		erp_item.shopify_product_id = new_item['product'].get("id")
+		
 		if not item.get("has_variants"):
 			erp_item.shopify_variant_id = new_item['product']["variants"][0].get("id")
+		
 		erp_item.save()
 		update_variant_item(new_item, variant_item_name_list)
 
@@ -354,6 +367,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 		put_request("/admin/products/{}.json".format(item.get("shopify_product_id")), item_data)
 
 	sync_item_image(erp_item)
+	frappe.db.commit()
 
 def sync_item_image(item):
 	image_info = {
