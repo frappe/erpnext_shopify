@@ -166,20 +166,21 @@ def get_attribute_value(variant_attr_val, attribute):
 
 def get_item_group(product_type=None):
 	# get parent item group by checking lft = 1
+	parent_item_group = frappe.utils.nestedset.get_root_of("Item Group")
 	
 	if product_type:
 		if not frappe.db.get_value("Item Group", product_type, "name"):
 			item_group = frappe.get_doc({
 				"doctype": "Item Group",
 				"item_group_name": product_type,
-				"parent_item_group": frappe.utils.nestedset.get_root_of("Item Group"),
+				"parent_item_group": parent_item_group,
 				"is_group": "No"
 			}).insert()
 			return item_group.name
 		else:
 			return product_type
 	else:
-		return frappe.utils.nestedset.get_root_of("Item Group")
+		return parent_item_group
 
 def get_sku(item):
 	if item.get("variants"):
@@ -207,17 +208,28 @@ def get_item_image(shopify_item):
 
 def get_supplier(shopify_item):
 	if shopify_item.get("vendor"):
-		if not frappe.db.get_value("Supplier", {"supplier_name": shopify_item.get("vendor")}, "name"):
+		if not frappe.db.get_value("Supplier", {"shopify_supplier_id": shopify_item.get("vendor").lower()}, "name"):
 			supplier = frappe.get_doc({
 				"doctype": "Supplier",
 				"supplier_name": shopify_item.get("vendor"),
-				"supplier_type": frappe.db.sql("select name from `tabSupplier Type` limit 1")[0][0]
+				"shopify_supplier_id": shopify_item.get("vendor"),
+				"supplier_type": get_supplier_type()
 			}).insert()
 			return supplier.name
 		else:
 			return shopify_item.get("vendor")
 	else:
 		return ""
+
+def get_supplier_type():
+	supplier_type = frappe.db.get_value("Supplier Type", _("Shopify Supplier"))
+	if not supplier_type:
+		supplier_type = frappe.get_doc({
+			"doctype": "Supplier Type",
+			"supplier_type": _("Shopify Supplier")
+		}).insert()
+		return supplier_type.name
+	return supplier_type
 
 def get_item_details(shopify_item):
 	item_details = {}
