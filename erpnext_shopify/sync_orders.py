@@ -71,7 +71,8 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 
 	else:
 		so = frappe.get_doc("Sales Order", so)
-
+		
+	frappe.db.commit()
 	return so
 
 def create_sales_invoice(shopify_order, shopify_settings, so):
@@ -83,6 +84,7 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 		si.is_pos = 1
 		si.cash_bank_account = shopify_settings.cash_bank_account
 		si.submit()
+		frappe.db.commit()
 
 def create_delivery_note(shopify_order, shopify_settings, so):
 	for fulfillment in shopify_order.get("fulfillments"):
@@ -93,6 +95,7 @@ def create_delivery_note(shopify_order, shopify_settings, so):
 			dn.naming_series = shopify_settings.delivery_note_series or "DN-Shopify-"
 			dn.items = get_fulfillment_items(dn.items, fulfillment.get("line_items"), shopify_settings)
 			dn.save()
+			frappe.db.commit()
 
 def get_fulfillment_items(dn_items, fulfillment_items, shopify_settings):
 	return [dn_item.update({"qty": item.get("quantity")}) for item in fulfillment_items for dn_item in dn_items\
