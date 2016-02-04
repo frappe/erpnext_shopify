@@ -4,9 +4,9 @@
 
 from __future__ import unicode_literals
 import frappe
-from frappe import _
 import requests.exceptions
 from .exceptions import ShopifyError
+
 from .sync_orders import sync_orders
 from .sync_customers import sync_customers
 from frappe.utils.user import get_system_managers
@@ -15,15 +15,12 @@ from .utils import create_log_entry, disable_shopify_sync_on_exception
 
 @frappe.whitelist()
 def sync_shopify():
-	"Enqueue longjob for syncing shopify"
-	from frappe.tasks import scheduler_task
-	scheduler_task.delay(site=frappe.local.site, event="hourly_long", handler="erpnext_shopify.api.sync_shopify_resouces")
-	frappe.msgprint(_("Queued for syncing. It may take a few minutes to an hour if this is your first sync."))
-
-@frappe.whitelist()
-def sync_shopify_resouces():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	if shopify_settings.enable_shopify:
+		
+		if not frappe.session.user:
+			frappe.set_user("Administrator")
+			
 		try :
 			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
 			sync_customers()

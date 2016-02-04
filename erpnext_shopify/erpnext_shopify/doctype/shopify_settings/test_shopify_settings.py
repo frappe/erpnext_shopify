@@ -25,10 +25,8 @@ class ShopifySettings(unittest.TestCase):
 		self.setup_shopify()
 	
 	def setup_shopify(self):
-		shopify_settings = frappe.get_doc("Shopify Settings")
-		shopify_settings.taxes = []
-		
-		shopify_settings.update({
+		frappe.get_doc({
+			"doctype": "Shopify Settings",
 			"app_type": "Private",
 			"shopify_url": "test.myshopify.com",
 			"api_key": "17702c7c4452b9c5d235240b6e7a39da",
@@ -36,7 +34,6 @@ class ShopifySettings(unittest.TestCase):
 			"price_list": "_Test Price List",
 			"warehouse": "_Test Warehouse - _TC",
 			"cash_bank_account": "Cash - _TC",
-			"customer_group": "_Test Customer Group",
 			"taxes": [
 				{
 					"shopify_tax": "International Shipping",
@@ -51,31 +48,25 @@ class ShopifySettings(unittest.TestCase):
 
 	def tearDown(self):
 		frappe.set_user("Administrator")
+
+		# so that this test doesn't affect other tests
+		frappe.db.sql("""delete from `tabItem`
+			where shopify_product_id in ("4059739520", "13917612359", "13917612423", "13917612487") """)
+
+		frappe.db.sql("""delete addr from tabAddress addr, tabCustomer cust
+			where  addr.customer=cust.name and cust.shopify_customer_id ="2324518599"  """)
+
+		frappe.db.sql("""delete from `tabCustomer` where shopify_customer_id = '2324518599' """)
 		
-		records = {
-			"Sales Invoice": [{"shopify_order_id": "2414345735"}],
-			"Delivery Note": [{"shopify_order_id": "2414345735"}],
-			"Sales Order": [{"shopify_order_id": "2414345735"}],
-			"Item": [{"shopify_product_id" :"4059739520"},{"shopify_product_id": "13917612359"}, 
-				{"shopify_product_id": "13917612423"}, {"shopify_product_id":"13917612487"}],
-			"Address": [{"shopify_address_id": "2476804295"}],
-			"Customer": [{"shopify_customer_id": "2324518599"}]
-		}
-		
-		for doctype in ["Sales Invoice", "Delivery Note", "Sales Order", "Item", "Address", "Customer"]:
-			for filters in records[doctype]:
-				for record in frappe.get_all(doctype, filters=filters):
-					if doctype not in ["Customer", "Item", "Address"]:
-						doc = frappe.get_doc(doctype, record.name)
-						if doc.docstatus == 1:
-							doc.cancel()
-					frappe.delete_doc(doctype, record.name)
+		frappe.db.sql("""delete from `tabSales Invoice` where shopify_order_id = '2414345735' """)
+		frappe.db.sql("""delete from `tabDelivery Note` where shopify_order_id = '2414345735' """)
+		frappe.db.sql("""delete from `tabSales Order` where shopify_order_id = '2414345735' """)
 
 	def test_product(self):
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_item.json")) as shopify_item:
 			shopify_item = json.load(shopify_item)
 
-		make_item("_Test Warehouse - _TC", shopify_item.get("product"), [])
+		make_item("_Test Warehouse - _TC", shopify_item.get("product"))
 
 		item = frappe.get_doc("Item", cstr(shopify_item.get("product").get("id")))
 
@@ -92,7 +83,7 @@ class ShopifySettings(unittest.TestCase):
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_customer.json")) as shopify_customer:
 			shopify_customer = json.load(shopify_customer)
 
-		create_customer(shopify_customer.get("customer"), [])
+		create_customer(shopify_customer.get("customer"))
 
 		customer = frappe.get_doc("Customer", {"shopify_customer_id": cstr(shopify_customer.get("customer").get("id"))})
 
@@ -107,12 +98,12 @@ class ShopifySettings(unittest.TestCase):
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_customer.json")) as shopify_customer:
 			shopify_customer = json.load(shopify_customer)
 			
-		create_customer(shopify_customer.get("customer"), [])
+		create_customer(shopify_customer.get("customer"))
 		
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_item.json")) as shopify_item:
 			shopify_item = json.load(shopify_item)
 
-		make_item("_Test Warehouse - _TC", shopify_item.get("product"), [])
+		make_item("_Test Warehouse - _TC", shopify_item.get("product"))
 		
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_order.json")) as shopify_order:
 			shopify_order = json.load(shopify_order)
