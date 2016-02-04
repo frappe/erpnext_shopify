@@ -11,7 +11,7 @@ def execute():
 		
 		if name and supplier:
 			frappe.db.set_value("Item", name, "default_supplier", supplier, update_modified=False)
-			
+						
 		if (index+1) % 100 == 0:
 			frappe.db.commit()		
 			
