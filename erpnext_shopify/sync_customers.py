@@ -1,20 +1,21 @@
 import frappe
 from frappe import _
-from .utils import get_address_type
 from .exceptions import ShopifyError
 from .shopify_requests import get_shopify_customers, post_request, put_request
 
 def sync_customers():
-	sync_shopify_customers()
-	sync_erpnext_customers()
+	shopify_customer_list = []
+	sync_shopify_customers(shopify_customer_list)
+	sync_erpnext_customers(shopify_customer_list)
 
-def sync_shopify_customers():
+def sync_shopify_customers(shopify_customer_list):
 	for shopify_customer in get_shopify_customers():
 		if not frappe.db.get_value("Customer", {"shopify_customer_id": shopify_customer.get('id')}, "name"):
-			create_customer(shopify_customer)
+			create_customer(shopify_customer, shopify_customer_list)
 
-def create_customer(shopify_customer):
+def create_customer(shopify_customer, shopify_customer_list):
 	erp_cust = None
+	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	cust_name = (shopify_customer.get("first_name") + " " + (shopify_customer.get("last_name") \
 		and  shopify_customer.get("last_name") or "")) if shopify_customer.get("first_name")\
@@ -27,23 +28,28 @@ def create_customer(shopify_customer):
 			"customer_name" : cust_name,
 			"shopify_customer_id": shopify_customer.get("id"),
 			"sync_with_shopify": 1,
-			"customer_group": "Commercial",
-			"territory": "All Territories",
-			"customer_type": "Company"
+			"customer_group": shopify_settings.customer_group,
+			"territory": _("All Territories"),
+			"customer_type": _("Individual")
 		}).insert()
 	except Exception, e:
 		raise e
 
 	if customer:
 		create_customer_address(customer, shopify_customer)
-
+	
+	shopify_customer_list.append(shopify_customer.get("id"))
+	frappe.db.commit()
+	
 def create_customer_address(customer, shopify_customer):
-	for i, address in enumerate(shopify_customer.get("addresses")):
+	for i, address in enumerate(shopify_customer.get("addresses")):		
+		address_title, address_type = get_address_title_and_type(customer.customer_name, i)	
+		
 		frappe.get_doc({
 			"doctype": "Address",
 			"shopify_address_id": address.get("id"),
-			"address_title": customer.customer_name,
-			"address_type": get_address_type(i),
+			"address_title": address_title,
+			"address_type": address_type,
 			"address_line1": address.get("address1") or "Address 1",
 			"address_line2": address.get("address2"),
 			"city": address.get("city") or "City",
@@ -56,11 +62,20 @@ def create_customer_address(customer, shopify_customer):
 			"customer_name":  customer.customer_name
 		}).insert()
 
-def sync_erpnext_customers():
+def get_address_title_and_type(customer_name, index):
+	address_type = _("Billing")
+	address_title = customer_name
+	if frappe.db.get_value("Address", "{0}-{1}".format(customer_name.strip(), address_type)):
+		address_title = "{0}-{1}".format(customer_name.strip(), index)
+		
+	return address_title, address_type 
+	
+def sync_erpnext_customers(shopify_customer_list):
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	condition = ["sync_with_shopify = 1"]
 	
+	last_sync_condition = ""
 	if shopify_settings.last_sync_datetime:
 		last_sync_condition = "modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
 		condition.append(last_sync_condition)
@@ -71,8 +86,12 @@ def sync_erpnext_customers():
 	for customer in frappe.db.sql(customer_query, as_dict=1):
 		if not customer.shopify_customer_id:
 			create_customer_to_shopify(customer)
+			
 		else:
-			update_customer_to_shopify(customer, last_sync_condition)
+			if customer.shopify_customer_id not in shopify_customer_list:
+				update_customer_to_shopify(customer, last_sync_condition)
+		
+		frappe.db.commit()
 
 def create_customer_to_shopify(customer):
 	shopify_customer = {

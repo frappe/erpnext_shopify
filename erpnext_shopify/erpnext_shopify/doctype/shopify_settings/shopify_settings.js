@@ -33,18 +33,12 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 		frm.toggle_reqd("sales_order_series", true);
 		frm.toggle_reqd("sales_invoice_series", true);
 		frm.toggle_reqd("delivery_note_series", true);
+		frm.toggle_reqd("customer_group", true);
 		
 		cur_frm.add_custom_button(__('Sync Shopify'),
-			function() {  
+			function() {
 				frappe.call({
 					method:"erpnext_shopify.api.sync_shopify",
-					freeze: true,
-					freeze_message: "Syncing",
-					callback:function(r){
-						if(!r.exc){
-							frappe.msgprint(__("Sync Completed!!"))
-						}
-					}
 				})
 			}, 'icon-sitemap')
 	}
