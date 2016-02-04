@@ -1,6 +1,12 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and contributors
+# For license information, please see license.txt
+
+from __future__ import unicode_literals
 import frappe
 import json
 from frappe.utils import cstr
+from .exceptions import ShopifySetupError
 
 def disable_shopify_sync_for_item(item):
 	"""Disable Item if not exist on shopify"""
@@ -20,3 +26,17 @@ def create_log_entry(data_json, exception):
 	error_log.request_data = json.dumps(data_json)
 	error_log.traceback = cstr(exception)
 	error_log.save(ignore_permissions=True)
+	
+def is_shopify_enabled():
+	shopify_settings = frappe.get_doc("Shopify Settings")
+	if not shopify_settings.enable_shopify:
+		return False
+	
+	try:
+		shopify_settings.validate()
+	except ShopifySetupError:
+		return False
+	
+	return True
+		
+	

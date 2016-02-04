@@ -8,6 +8,7 @@ from frappe import _
 import requests.exceptions
 from frappe.model.document import Document
 from erpnext_shopify.shopify_requests import get_request
+from erpnext_shopify.exceptions import ShopifySetupError
 
 class ShopifySettings(Document):
 	def validate(self):
@@ -18,11 +19,11 @@ class ShopifySettings(Document):
 	def validate_access_credentials(self):
 		if self.app_type == "Private":
 			if not (self.password and self.api_key and self.shopify_url):
-				frappe.msgprint(_("Missing value for Passowrd, API Key or Shopify URL"), raise_exception=1)
+				frappe.msgprint(_("Missing value for Password, API Key or Shopify URL"), raise_exception=ShopifySetupError)
 
 		else:
 			if not (self.access_token and self.shopify_url):
-				frappe.msgprint(_("Access token or Shopify URL missing"), raise_exception=1)
+				frappe.msgprint(_("Access token or Shopify URL missing"), raise_exception=ShopifySetupError)
 
 	def validate_access(self):
 		try:
@@ -31,8 +32,12 @@ class ShopifySettings(Document):
 				"access_token": self.access_token, "app_type": self.app_type})
 
 		except requests.exceptions.HTTPError:
+			# disable shopify!
+			frappe.db.rollback()
 			self.set("enable_shopify", 0)
-			frappe.throw(_("""Invalid Shopify app credentails or access token"""))
+			frappe.db.commit()
+			
+			frappe.throw(_("""Invalid Shopify app credentials or access token"""), ShopifySetupError)
 
 
 @frappe.whitelist()

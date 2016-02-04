@@ -17,11 +17,12 @@ from .utils import create_log_entry, disable_shopify_sync_on_exception
 def sync_shopify():
 	"Enqueue longjob for syncing shopify"
 	from frappe.tasks import scheduler_task
-	scheduler_task.delay(site=frappe.local.site, event="hourly_long", handler="erpnext_shopify.api.sync_shopify_resouces")
+	scheduler_task.delay(site=frappe.local.site, event="hourly_long", 
+		handler="erpnext_shopify.api.sync_shopify_resources")
 	frappe.msgprint(_("Queued for syncing. It may take a few minutes to an hour if this is your first sync."))
 
 @frappe.whitelist()
-def sync_shopify_resouces():
+def sync_shopify_resources():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	if shopify_settings.enable_shopify:
 		try :
