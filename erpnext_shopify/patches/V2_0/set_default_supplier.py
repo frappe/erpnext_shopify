@@ -1,5 +1,8 @@
-# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
-# License: GNU General Public License v3. See license.txt
+# -*- coding: utf-8 -*-
+# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and contributors
+# For license information, please see license.txt
+
+from __future__ import unicode_literals
 import frappe
 from erpnext_shopify.shopify_requests import get_shopify_items
 from erpnext_shopify.sync_products import get_supplier

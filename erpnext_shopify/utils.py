@@ -1,7 +1,12 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and contributors
+# For license information, please see license.txt
+
+from __future__ import unicode_literals
 import frappe
 import json
 from frappe.utils import cstr
-from erpnext_shopify.exceptions import ShopifySetupError
+from .exceptions import ShopifySetupError
 
 def disable_shopify_sync_for_item(item):
 	"""Disable Item if not exist on shopify"""
