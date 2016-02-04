@@ -39,7 +39,6 @@ def create_customer(shopify_customer, shopify_customer_list):
 		create_customer_address(customer, shopify_customer)
 	
 	shopify_customer_list.append(shopify_customer.get("id"))
-	frappe.db.commit()
 	
 def create_customer_address(customer, shopify_customer):
 	for i, address in enumerate(shopify_customer.get("addresses")):		
@@ -90,8 +89,6 @@ def sync_erpnext_customers(shopify_customer_list):
 		else:
 			if customer.shopify_customer_id not in shopify_customer_list:
 				update_customer_to_shopify(customer, last_sync_condition)
-		
-		frappe.db.commit()
 
 def create_customer_to_shopify(customer):
 	shopify_customer = {

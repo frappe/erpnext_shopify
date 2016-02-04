@@ -1,0 +1,32 @@
+[
+	{
+		"doctype": "Item",
+		"item_code": "Test Shopify Item",
+		"item_name": "Test Shopify Item",
+		"description": "Test Shopify Item",
+		"sync_with_shopify": 1,
+	    "default_warehouse": "_Test Warehouse - _TC",
+	    "expense_account": "_Test Account Cost for Goods Sold - _TC",
+	    "cost_center": "_Test Cost Center - _TC",
+	    "has_batch_no": 0,
+	    "has_serial_no": 0,
+	    "income_account": "Sales - _TC",
+	    "inspection_required": 0,
+	    "is_asset_item": 0,
+	    "is_pro_applicable": 1,
+	    "is_purchase_item": 1,
+	    "is_sales_item": 1,
+	  	"is_stock_item": 1,
+	    "is_sub_contracted_item": 1,
+	    "item_group": "_Test Item Group Desktops",
+	    "stock_uom": "_Test UOM"
+	},
+    {
+     "customer_group": "_Test Customer Group",
+     "customer_name": "_Test Shopify Customer",
+     "customer_type": "Individual",
+     "doctype": "Customer",
+     "territory": "_Test Territory",
+	 "sync_with_shopify": 1
+    }
+]
