@@ -113,7 +113,7 @@ class ShopifySettings(unittest.TestCase):
 			shopify_item = json.load(shopify_item)
 
 		make_item("_Test Warehouse - _TC", shopify_item.get("product"), [])
-		
+				
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_order.json")) as shopify_order:
 			shopify_order = json.load(shopify_order)
 		
