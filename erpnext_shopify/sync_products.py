@@ -54,7 +54,7 @@ def create_attribute(shopify_item):
 				"item_attribute_values": [
 					{
 						"attribute_value": attr_value, 
-						"abbr": get_attribute_abbr(attr_value)
+						"abbr":attr_value
 					} 
 					for attr_value in attr.get("values")
 				]
@@ -86,16 +86,8 @@ def set_new_attribute_values(item_attr, values):
 		 for d in item_attr.item_attribute_values):
 			item_attr.append("item_attribute_values", {
 				"attribute_value": attr_value,
-				"abbr": get_attribute_abbr(attr_value)
+				"abbr": attr_value
 			})
-			
-def get_attribute_abbr(attribute_value):
-	attribute_value = cstr(attribute_value)
-	if re.findall("[\d]+", attribute_value, flags=re.UNICODE):
-		# if attribute value has a number in it, pass value as abbrivation
-		return attribute_value 
-	else:
-		return attribute_value[:3]
 
 def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_of=None, shopify_item_list=[]):
 	item_dict = {
@@ -251,7 +243,6 @@ def get_item_details(shopify_item):
 
 def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):	
 	name = frappe.db.get_value("Item", {"item_name": shopify_item.get("item_name")})
-	
 	shopify_item_list.append(cstr(shopify_item.get("shopify_product_id")))
 	
 	if name:
