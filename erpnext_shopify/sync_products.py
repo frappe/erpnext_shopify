@@ -33,7 +33,7 @@ def make_item(warehouse, shopify_item, shopify_item_list):
 	else:
 		shopify_item["variant_id"] = shopify_item['variants'][0]["id"]
 		create_item(shopify_item, warehouse, shopify_item_list=shopify_item_list)
-		
+				
 def add_item_weight(shopify_item):
 	shopify_item["weight"] = shopify_item['variants'][0]["weight"]
 	shopify_item["weight_unit"] = shopify_item['variants'][0]["weight_unit"]
@@ -82,7 +82,8 @@ def create_attribute(shopify_item):
 
 def set_new_attribute_values(item_attr, values):
 	for attr_value in values:
-		if not any((d.abbr == attr_value or d.attribute_value == attr_value) for d in item_attr.item_attribute_values):
+		if not any((d.abbr.lower() == attr_value.lower() or d.attribute_value.lower() == attr_value.lower())\
+		 for d in item_attr.item_attribute_values):
 			item_attr.append("item_attribute_values", {
 				"attribute_value": attr_value,
 				"abbr": get_attribute_abbr(attr_value)
@@ -119,9 +120,9 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"net_weight": shopify_item.get("weight"),
 		"default_supplier": get_supplier(shopify_item)
 	}
-		
 	if not is_item_exists(item_dict, attributes, shopify_item_list=shopify_item_list):
 		item_details = get_item_details(shopify_item)
+		
 		if not item_details:
 			new_item = frappe.get_doc(item_dict)
 			new_item.insert()
@@ -130,7 +131,7 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		else:
 			update_item(item_details, item_dict)
 			name = item_details.name
-		
+				
 		if not has_variant:
 			add_to_price_list(shopify_item, name)
 		
@@ -145,7 +146,7 @@ def create_item_variants(shopify_item, warehouse, attributes, shopify_variants_a
 			shopify_item_variant = {
 				"id" : variant.get("id"),
 				"item_code": variant.get("id"),
-				"title": shopify_item.get("title"),
+				"title": variant.get("title"),
 				"product_type": shopify_item.get("product_type"),
 				"sku": variant.get("sku"),
 				"uom": template_item.stock_uom or _("Nos"),
@@ -250,23 +251,23 @@ def get_item_details(shopify_item):
 
 def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):	
 	name = frappe.db.get_value("Item", {"item_name": shopify_item.get("item_name")})
-	if name:
-		item = frappe.get_doc("Item", name)
 	
-		shopify_item_list.append(item.name)
+	shopify_item_list.append(cstr(shopify_item.get("shopify_product_id")))
+	
+	if name:
+
+		item = frappe.get_doc("Item", name)		
 		
 		if not item.shopify_product_id:			
 			item.shopify_product_id = shopify_item.get("shopify_product_id")
 			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
 			item.save()
-		
+			
 			return False
 
-		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):		
+		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):
 			variant_of = frappe.db.get_value("Item", {"shopify_product_id": item.shopify_product_id}, "name")
-		
-			shopify_item_list.append(variant_of)
-		
+					
 			# create conditions for all item attributes,
 			# as we are putting condition basis on OR it will fetch all items matching either of conditions
 			# thus comparing matching conditions with len(attributes)
@@ -293,7 +294,6 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 		return True
 		
 	else:
-		shopify_item_list.append(shopify_item.get("shopify_product_id"))
 		return False
 
 def update_item(item_details, item_dict):
@@ -321,7 +321,7 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 		and (disabled is null or disabled = 0) %s """ % last_sync_condition
 	
 	for item in frappe.db.sql(item_query, as_dict=1):
-		if item.name not in shopify_item_list:
+		if item.shopify_product_id not in shopify_item_list:
 			sync_item_with_shopify(item, price_list, warehouse)
 
 def sync_item_with_shopify(item, price_list, warehouse):
