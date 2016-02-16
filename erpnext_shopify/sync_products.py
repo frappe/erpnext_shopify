@@ -1,16 +1,14 @@
+from __future__ import unicode_literals
 import re
 import frappe
 import base64
 import datetime
 import requests
 from frappe import _
-from erpnext.stock.utils import get_bin
 import requests.exceptions
-from .exceptions import ShopifyError
-from frappe.utils import cstr, flt, nowdate, cint, get_files_path
-from .utils import disable_shopify_sync_for_item, disable_shopify_sync_on_exception, create_log_entry
-from .shopify_requests import (get_request, post_request, get_shopify_items, put_request, 
-	get_shopify_item_image)
+from erpnext.stock.utils import get_bin
+from frappe.utils import cstr, flt, cint, get_files_path
+from .shopify_requests import post_request, get_shopify_items, put_request, get_shopify_item_image
 
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
@@ -355,7 +353,16 @@ def sync_item_with_shopify(item, price_list, warehouse):
 
 	else:
 		item_data["product"]["id"] = item.get("shopify_product_id")
-		put_request("/admin/products/{}.json".format(item.get("shopify_product_id")), item_data)
+		try:
+			put_request("/admin/products/{}.json".format(item.get("shopify_product_id")), item_data)
+			
+		except requests.exceptions.HTTPError, e:
+			if e.args[0] and e.args[0].startswith("404"):
+				erp_item.shopify_product_id = ""
+				erp_item.sync_with_shopify = 0
+				erp_item.save()
+			else:
+				raise
 
 	sync_item_image(erp_item)
 	frappe.db.commit()
