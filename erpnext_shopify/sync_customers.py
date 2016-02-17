@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from .exceptions import ShopifyError
+import requests.exceptions
 from .shopify_requests import get_shopify_customers, post_request, put_request
 
 def sync_customers():
@@ -14,7 +14,6 @@ def sync_shopify_customers(shopify_customer_list):
 			create_customer(shopify_customer, shopify_customer_list)
 
 def create_customer(shopify_customer, shopify_customer_list):
-	erp_cust = None
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	cust_name = (shopify_customer.get("first_name") + " " + (shopify_customer.get("last_name") \
@@ -123,17 +122,24 @@ def update_customer_to_shopify(customer, last_sync_condition):
 		"first_name": customer['customer_name']
 	}
 	
-	put_request("/admin/customers/{0}.json".format(customer.shopify_customer_id),\
-	{ "customer": shopify_customer})
-	
-	update_address_details(customer, last_sync_condition)
-
+	try:
+		put_request("/admin/customers/{0}.json".format(customer.shopify_customer_id),\
+			{ "customer": shopify_customer})
+		update_address_details(customer, last_sync_condition)
+		
+	except requests.exceptions.HTTPError, e:
+		if e.args[0] and e.args[0].startswith("404"):
+			customer = frappe.get_doc("Customer", customer.name)
+			customer.shopify_customer_id = ""
+			customer.sync_with_shopify = 0
+			customer.save()
+		else:
+			raise
+			
 def update_address_details(customer, last_sync_condition):
 	customer_addresses = get_customer_addresses(customer, last_sync_condition)
 	for address in customer_addresses:
-		if address.shopify_address_id:
-			address_name = address.pop("name")
-			
+		if address.shopify_address_id:			
 			url = "/admin/customers/{0}/addresses/{1}.json".format(customer.shopify_customer_id,\
 			 address.shopify_address_id)
 			put_request(url, { "address": address})
