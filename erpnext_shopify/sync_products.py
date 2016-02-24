@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import re
 import frappe
 import base64
 import datetime
@@ -149,7 +148,6 @@ def create_item_variants(shopify_item, warehouse, attributes, shopify_variants_a
 			for i, variant_attr in enumerate(shopify_variants_attr_list):
 				if variant.get(variant_attr):
 					attributes[i].update({"attribute_value": get_attribute_value(variant.get(variant_attr), attributes[i])})
-
 			create_item(shopify_item_variant, warehouse, 0, attributes, template_item.name, shopify_item_list=shopify_item_list)
 
 def get_attribute_value(variant_attr_val, attribute):
@@ -255,7 +253,7 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 			return False
 
 		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):
-			variant_of = frappe.db.get_value("Item", {"shopify_product_id": item.shopify_product_id}, "name")
+			variant_of = frappe.db.get_value("Item", {"shopify_product_id": item.shopify_product_id}, "variant_of")
 					
 			# create conditions for all item attributes,
 			# as we are putting condition basis on OR it will fetch all items matching either of conditions
@@ -271,7 +269,7 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 				( select count(*) from `tabItem Variant Attribute` iv 
 					where {conditions} and it.variant_of = %s """.format(conditions=conditions) , 
 				variant_of, as_list=1)
-				
+			
 			if parent:
 				variant = frappe.get_doc("Item", parent[0][0])
 				variant.shopify_product_id = shopify_item.get("shopify_product_id")
