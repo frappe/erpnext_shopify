@@ -143,6 +143,11 @@ def update_address_details(customer, last_sync_condition):
 		if address.shopify_address_id:			
 			url = "/admin/customers/{0}/addresses/{1}.json".format(customer.shopify_customer_id,\
 			 address.shopify_address_id)
+			
+			address["id"] = address["shopify_address_id"]
+			
+			del address["shopify_address_id"]
+			
 			put_request(url, { "address": address})
 			
 		else:
@@ -156,7 +161,7 @@ def get_customer_addresses(customer, last_sync_cond=None):
 	
 	address_query = """select addr.name, addr.address_line1 as address1, addr.address_line2 as address2,
 		addr.city as city, addr.state as province, addr.country as country, addr.pincode as zip, 
-		addr.shopify_address_id as id from tabAddress addr 
+		addr.shopify_address_id from tabAddress addr 
 		where {0}""".format(' and '.join(conditions)) 
 			
 	return frappe.db.sql(address_query, as_dict=1)

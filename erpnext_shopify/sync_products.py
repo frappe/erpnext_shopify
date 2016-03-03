@@ -288,9 +288,10 @@ def update_item(item_details, item_dict):
 	item_dict["stock_uom"] = item_details.stock_uom
 	item_dict["description"] = item_dict["description"] or item.description
 	
-	del item_dict['item_code']
+	del item_dict["item_code"]
 	del item_dict["variant_of"]
-
+	del item_dict["item_name"]
+		
 	item.update(item_dict)
 	item.save()
 
