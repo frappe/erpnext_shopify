@@ -42,12 +42,17 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 				})
 			}, 'icon-sitemap')
 	}
+	
 	if(!frm.doc.access_token && (!frm.doc.api_key || !frm.doc.password)) {
 		cur_frm.add_custom_button(__("Connect to Shopify"), 
 			function(){
 				window.open("https://apps.shopify.com/erpnext");
 			}).addClass("btn-primary")
 	}
+	
+	cur_frm.add_custom_button(__("Shopify Log"), function(){
+		frappe.set_route("List", "Shopify Log");
+	})
 })
 
 cur_frm.fields_dict["cash_bank_account"].get_query = function(doc) {

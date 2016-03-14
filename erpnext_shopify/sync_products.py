@@ -5,6 +5,8 @@ import datetime
 import requests
 from frappe import _
 import requests.exceptions
+from .exceptions import ShopifyError
+from .utils import make_shopify_log
 from erpnext.stock.utils import get_bin
 from frappe.utils import cstr, flt, cint, get_files_path
 from .shopify_requests import post_request, get_shopify_items, put_request, get_shopify_item_image
@@ -14,11 +16,23 @@ shopify_variants_attr_list = ["option1", "option2", "option3"]
 def sync_products(price_list, warehouse):
 	shopify_item_list = [] 
 	sync_shopify_items(warehouse, shopify_item_list)
-	sync_erpnext_items(price_list, warehouse, shopify_item_list)
+	# sync_erpnext_items(price_list, warehouse, shopify_item_list)
 
 def sync_shopify_items(warehouse, shopify_item_list):
 	for shopify_item in get_shopify_items():
-		make_item(warehouse, shopify_item, shopify_item_list)
+		try:
+			make_item(warehouse, shopify_item, shopify_item_list)
+			
+		except ShopifyError, e:
+			make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+				request_data=shopify_item, exception=True)
+
+		except Exception, e:
+			if e.args[0] and e.args[0].startswith("402"):
+				raise e
+			else:
+				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+					request_data=shopify_item, exception=True)
 		
 def make_item(warehouse, shopify_item, shopify_item_list):
 	add_item_weight(shopify_item)
@@ -243,9 +257,9 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 	
 	if name:
 
-		item = frappe.get_doc("Item", name)		
+		item = frappe.get_doc("Item", name)
 		
-		if not item.shopify_product_id:			
+		if not item.shopify_product_id:
 			item.shopify_product_id = shopify_item.get("shopify_product_id")
 			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
 			item.save()
@@ -275,7 +289,6 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 				variant.shopify_product_id = shopify_item.get("shopify_product_id")
 				variant.shopify_variant_id = shopify_item.get("shopify_variant_id")
 				variant.save()
-				 
 			return False
 		
 		return True
@@ -310,7 +323,15 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 	
 	for item in frappe.db.sql(item_query, as_dict=1):
 		if item.shopify_product_id not in shopify_item_list:
-			sync_item_with_shopify(item, price_list, warehouse)
+			try:
+				sync_item_with_shopify(item, price_list, warehouse)
+			except ShopifyError, e:
+				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+					request_data=item, exception=True)
+					
+			except Exception, e:
+				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+					request_data=item, exception=True)
 
 def sync_item_with_shopify(item, price_list, warehouse):
 	variant_item_name_list = []
@@ -361,7 +382,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 				erp_item.sync_with_shopify = 0
 				erp_item.save()
 			else:
-				raise
+				raise e
 
 	sync_item_image(erp_item)
 	frappe.db.commit()
@@ -502,7 +523,18 @@ def update_item_stock_qty():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	for item in frappe.get_all("Item", fields=['name', "item_code"], 
 		filters={"sync_with_shopify": 1, "disabled": ("!=", 1)}):
-		update_item_stock(item.item_code, shopify_settings)
+		try:
+			update_item_stock(item.item_code, shopify_settings)
+		except ShopifyError, e:
+			make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+				request_data=item, exception=True)
+				
+		except Exception, e:
+			if e.args[0] and e.args[0].startswith("402"):
+				raise e
+			else:
+				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+					request_data=item, exception=True)
 
 def update_item_stock(item_code, shopify_settings, bin=None):
 	item = frappe.get_doc("Item", item_code)
