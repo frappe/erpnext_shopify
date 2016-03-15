@@ -5,7 +5,6 @@
 from __future__ import unicode_literals
 import frappe
 import json
-from frappe.utils import cstr
 from .exceptions import ShopifySetupError
 
 def disable_shopify_sync_for_item(item):
@@ -20,23 +19,41 @@ def disable_shopify_sync_on_exception():
 	frappe.db.set_value("Shopify Settings", None, "enable_shopify", 0)
 	frappe.db.commit()
 
-def create_log_entry(data_json, exception):
-	error_log = frappe.new_doc("Shopify Error Log")
-	error_log.log_datetime = frappe.utils.now()
-	error_log.request_data = json.dumps(data_json)
-	error_log.traceback = cstr(exception)
-	error_log.save(ignore_permissions=True)
-	
 def is_shopify_enabled():
 	shopify_settings = frappe.get_doc("Shopify Settings")
 	if not shopify_settings.enable_shopify:
 		return False
-	
 	try:
 		shopify_settings.validate()
 	except ShopifySetupError:
 		return False
 	
 	return True
-		
 	
+def make_shopify_log(title="Sync Log", status="Queued", method="sync_shopify", message=None, exception=False, 
+name=None, request_data={}):	
+	if not name:
+		name = frappe.db.get_value("Shopify Log", {"status": "Queued"})
+		
+		if name:
+			""" if name not provided by log calling method then fetch existing queued state log"""
+			log = frappe.get_doc("Shopify Log", name)
+		
+		else:
+			""" if queued job is not found create a new one."""
+			log = frappe.get_doc({"doctype":"Shopify Log"}).insert(ignore_permissions=True)
+		
+		log.title = title
+		log.method = method
+		log.status = status
+		log.request_data= json.dumps(request_data)
+		
+		if exception:
+			frappe.db.rollback()
+			log.message = message if message else frappe.get_traceback()
+		
+		else:
+			log.message = message
+		
+		log.save(ignore_permissions=True)
+		frappe.db.commit()

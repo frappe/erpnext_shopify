@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from .exceptions import ShopifyError
-from .utils import create_log_entry
+from .utils import make_shopify_log
 from .sync_products import make_item
 from .sync_customers import create_customer
 from frappe.utils import cstr, flt, nowdate
@@ -13,20 +13,31 @@ def sync_orders():
 	sync_shopify_orders()
 
 def sync_shopify_orders():
+	frappe.local.form_dict.count_dict["orders"] = 0
 	for shopify_order in get_shopify_orders():
 		if valid_customer_and_product(shopify_order):
-			create_order(shopify_order)
-
+			try:
+				create_order(shopify_order)
+				frappe.local.form_dict.count_dict["orders"] += 1
+				
+			except ShopifyError, e:
+				make_shopify_log(status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
+					request_data=shopify_order, exception=True)
+			except Exception, e:
+				if e.args[0] and e.args[0].startswith("402"):
+					raise e
+				else:
+					make_shopify_log(title=e.message, status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
+						request_data=shopify_order, exception=True)
+				
 def valid_customer_and_product(shopify_order):
 	customer_id = shopify_order.get("customer", {}).get("id")
 	if customer_id:
 		if not frappe.db.get_value("Customer", {"shopify_customer_id": customer_id}, "name"):
 			create_customer(shopify_order.get("customer"))
 	else:
-		create_log_entry(shopify_order, _("Customer is mandatory to create order"))
-		frappe.msgprint(_("Customer is mandatory to create order"))
-		return False
-	
+		raise _("Customer is mandatory to create order")
+		
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in shopify_order.get("line_items"):
 		if not frappe.db.get_value("Item", {"shopify_product_id": item.get("product_id")}, "name"):

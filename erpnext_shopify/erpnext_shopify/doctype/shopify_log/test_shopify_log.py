@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import frappe
 import unittest
 
-# test_records = frappe.get_test_records('Shopify Error Log')
+# test_records = frappe.get_test_records('Shopify Log')
 
-class TestShopifyErrorLog(unittest.TestCase):
+class TestShopifyLog(unittest.TestCase):
 	pass
