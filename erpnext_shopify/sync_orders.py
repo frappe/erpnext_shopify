@@ -13,10 +13,13 @@ def sync_orders():
 	sync_shopify_orders()
 
 def sync_shopify_orders():
+	frappe.local.form_dict.count_dict["orders"] = 0
 	for shopify_order in get_shopify_orders():
 		if valid_customer_and_product(shopify_order):
 			try:
 				create_order(shopify_order)
+				frappe.local.form_dict.count_dict["orders"] += 1
+				
 			except ShopifyError, e:
 				make_shopify_log(status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
 					request_data=shopify_order, exception=True)

@@ -5,7 +5,6 @@
 from __future__ import unicode_literals
 import frappe
 import json
-from frappe.utils import cstr
 from .exceptions import ShopifySetupError
 
 def disable_shopify_sync_for_item(item):
@@ -32,9 +31,7 @@ def is_shopify_enabled():
 	return True
 	
 def make_shopify_log(title="Sync Log", status="Queued", method="sync_shopify", message=None, exception=False, 
-name=None, request_data={}):
-	print [title, message, status, method, exception, request_data]
-	
+name=None, request_data={}):	
 	if not name:
 		name = frappe.db.get_value("Shopify Log", {"status": "Queued"})
 		
@@ -53,10 +50,10 @@ name=None, request_data={}):
 		
 		if exception:
 			frappe.db.rollback()
-			log.traceback = message if message else frappe.get_traceback()
+			log.message = message if message else frappe.get_traceback()
 		
 		else:
-			log.traceback = message
+			log.message = message
 		
 		log.save(ignore_permissions=True)
 		frappe.db.commit()

@@ -14,9 +14,10 @@ from .shopify_requests import post_request, get_shopify_items, put_request, get_
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
 def sync_products(price_list, warehouse):
-	shopify_item_list = [] 
+	shopify_item_list = []
 	sync_shopify_items(warehouse, shopify_item_list)
-	# sync_erpnext_items(price_list, warehouse, shopify_item_list)
+	frappe.local.form_dict.count_dict["products"] = len(shopify_item_list)
+	sync_erpnext_items(price_list, warehouse, shopify_item_list)
 
 def sync_shopify_items(warehouse, shopify_item_list):
 	for shopify_item in get_shopify_items():
@@ -325,10 +326,11 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 		if item.shopify_product_id not in shopify_item_list:
 			try:
 				sync_item_with_shopify(item, price_list, warehouse)
+				frappe.local.form_dict.count_dict["products"] += 1
+				
 			except ShopifyError, e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
-					
 			except Exception, e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)

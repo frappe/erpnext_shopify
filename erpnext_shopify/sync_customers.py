@@ -8,6 +8,8 @@ from .utils import make_shopify_log
 def sync_customers():
 	shopify_customer_list = []
 	sync_shopify_customers(shopify_customer_list)
+	frappe.local.form_dict.count_dict["customers"] = len(shopify_customer_list)
+	
 	sync_erpnext_customers(shopify_customer_list)
 
 def sync_shopify_customers(shopify_customer_list):
@@ -101,7 +103,8 @@ def sync_erpnext_customers(shopify_customer_list):
 			else:
 				if customer.shopify_customer_id not in shopify_customer_list:
 					update_customer_to_shopify(customer, last_sync_condition)
-		
+			
+			frappe.local.form_dict.count_dict["customers"] += 1
 			frappe.db.commit()
 		except Exception, e:
 			make_shopify_log(title=e.message, status="Error", method="sync_erpnext_customers", message=frappe.get_traceback(),
