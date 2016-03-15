@@ -55,7 +55,7 @@ def sync_shopify_resources():
 					title="sync has terminated",
 					status="Error",
 					method="sync_shopify_resources",
-					message=_("""Unfortunately shopify sync has terminated. Please check Scheduler Log for more details."""),
+					message=frappe.get_traceback(),
 					exception=True)
 					
 	elif frappe.local.form_dict.cmd == "erpnext_shopify.api.sync_shopify":
@@ -75,3 +75,25 @@ def validate_shopify_settings(shopify_settings):
 		shopify_settings.save()
 	except ShopifyError:
 		disable_shopify_sync_on_exception()
+
+@frappe.whitelist()
+def get_log_status():
+	log = frappe.db.sql("""select name, status from `tabShopify Log` 
+		order by modified desc limit 1""", as_dict=1)
+	if log:
+		if log[0].status=="Queued":
+			message = _("Last sync request is queued")
+			alert_class = "alert-warning"
+		elif log[0].status=="Error":
+			message = _("Last sync request was failed, check <a href='../desk#Form/Shopify Log/{0}'> here</a>"
+				.format(log[0].name))
+			alert_class = "alert-danger"
+		else:
+			message = _("Last sync request was successful")
+			alert_class = "alert-success"
+			
+		return {
+			"text": message,
+			"alert_class": alert_class
+		}
+		

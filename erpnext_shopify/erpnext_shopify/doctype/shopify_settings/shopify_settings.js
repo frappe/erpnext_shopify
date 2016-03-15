@@ -53,6 +53,15 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 	cur_frm.add_custom_button(__("Shopify Log"), function(){
 		frappe.set_route("List", "Shopify Log");
 	})
+	
+	
+	frappe.call({
+		method: "erpnext_shopify.api.get_log_status",
+		callback: function(r) {
+			frm.dashboard.set_headline_alert(r.message.text, r.message.alert_class)
+		}
+	})
+	
 })
 
 cur_frm.fields_dict["cash_bank_account"].get_query = function(doc) {
