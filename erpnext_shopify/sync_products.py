@@ -1,8 +1,5 @@
 from __future__ import unicode_literals
 import frappe
-import base64
-import datetime
-import requests
 from frappe import _
 import requests.exceptions
 from .exceptions import ShopifyError
@@ -10,6 +7,7 @@ from .utils import make_shopify_log
 from erpnext.stock.utils import get_bin
 from frappe.utils import cstr, flt, cint, get_files_path
 from .shopify_requests import post_request, get_shopify_items, put_request, get_shopify_item_image
+import base64, requests, datetime, os
 
 shopify_variants_attr_list = ["option1", "option2", "option3"]
 
@@ -433,13 +431,12 @@ def validate_image_url(url):
 
 def item_image_exists(shopify_product_id, image_info):
 	"""check same image exist or not"""
-
 	for image in get_shopify_item_image(shopify_product_id):
 		if image_info.get("image").get("filename"):
-			if image.get("src").split("/")[-1:][0].split("?")[0] == image_info.get("image").get("filename"):
+			if os.path.splitext(image.get("src"))[0].split("/")[-1] == os.path.splitext(image_info.get("image").get("filename"))[0]:
 				return True
 		elif image_info.get("image").get("src"):
-			if image.get("src") == image_info.get("image").get("src"):
+			if os.path.splitext(image.get("src"))[0].split("/")[-1] == os.path.splitext(image_info.get("image").get("src"))[0].split("/")[-1]:
 				return True
 		else:
 			return False

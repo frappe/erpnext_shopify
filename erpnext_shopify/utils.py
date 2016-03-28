@@ -43,17 +43,15 @@ name=None, request_data={}):
 			""" if queued job is not found create a new one."""
 			log = frappe.get_doc({"doctype":"Shopify Log"}).insert(ignore_permissions=True)
 		
-		log.title = title
+		if exception:
+			frappe.db.rollback()
+			log = frappe.get_doc({"doctype":"Shopify Log"}).insert(ignore_permissions=True)
+			
+		log.message = message if message else frappe.get_traceback()
+		log.title = title[0:140]
 		log.method = method
 		log.status = status
 		log.request_data= json.dumps(request_data)
-		
-		if exception:
-			frappe.db.rollback()
-			log.message = message if message else frappe.get_traceback()
-		
-		else:
-			log.message = message
 		
 		log.save(ignore_permissions=True)
 		frappe.db.commit()
