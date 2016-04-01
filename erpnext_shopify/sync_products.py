@@ -259,7 +259,8 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 	if name:
 
 		item = frappe.get_doc("Item", name)
-
+		item.flags.ignore_mandatory=True
+		
 		if not item.shopify_product_id:
 			item.shopify_product_id = shopify_item.get("shopify_product_id")
 			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
@@ -287,6 +288,8 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 
 			if parent:
 				variant = frappe.get_doc("Item", parent[0][0])
+				variant.flags.ignore_mandatory = True
+				
 				variant.shopify_product_id = shopify_item.get("shopify_product_id")
 				variant.shopify_variant_id = shopify_item.get("shopify_variant_id")
 				variant.save()
@@ -310,6 +313,7 @@ def update_item(item_details, item_dict):
 	del item_dict["item_name"]
 
 	item.update(item_dict)
+	item.flags.ignore_mandatory = True
 	item.save()
 
 def sync_erpnext_items(price_list, warehouse, shopify_item_list):
@@ -365,7 +369,8 @@ def sync_item_with_shopify(item, price_list, warehouse):
 		item_data["product"]["variants"] = [get_price_and_stock_details(item, warehouse, price_list)]
 
 	erp_item = frappe.get_doc("Item", item.get("name"))
-
+	erp_item.flags.ignore_mandatory = True
+	
 	if not item.get("shopify_product_id"):
 		new_item = post_request("/admin/products.json", item_data)
 		erp_item.shopify_product_id = new_item['product'].get("id")
@@ -444,6 +449,7 @@ def item_image_exists(shopify_product_id, image_info):
 def update_variant_item(new_item, item_code_list):
 	for i, name in enumerate(item_code_list):
 		erp_item = frappe.get_doc("Item", name)
+		erp_item.flags.ignore_mandatory = True
 		erp_item.shopify_product_id = new_item['product']["variants"][i].get("id")
 		erp_item.shopify_variant_id = new_item['product']["variants"][i].get("id")
 		erp_item.save()
