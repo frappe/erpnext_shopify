@@ -34,7 +34,9 @@ def create_customer(shopify_customer, shopify_customer_list):
 			"customer_group": shopify_settings.customer_group,
 			"territory": _("All Territories"),
 			"customer_type": _("Individual")
-		}).insert()
+		})
+		customer.flags.ignore_mandatory = True
+		customer.insert()
 		
 		if customer:
 			create_customer_address(customer, shopify_customer)
@@ -119,6 +121,8 @@ def create_customer_to_shopify(customer):
 	
 	customer = frappe.get_doc("Customer", customer['name'])
 	customer.shopify_customer_id = shopify_customer['customer'].get("id")
+	
+	customer.flags.ignore_mandatory = True
 	customer.save()
 	
 	addresses = get_customer_addresses(customer.as_dict())
@@ -150,6 +154,7 @@ def update_customer_to_shopify(customer, last_sync_condition):
 			customer = frappe.get_doc("Customer", customer.name)
 			customer.shopify_customer_id = ""
 			customer.sync_with_shopify = 0
+			customer.flags.ignore_mandatory = True
 			customer.save()
 		else:
 			raise
@@ -157,9 +162,9 @@ def update_customer_to_shopify(customer, last_sync_condition):
 def update_address_details(customer, last_sync_condition):
 	customer_addresses = get_customer_addresses(customer, last_sync_condition)
 	for address in customer_addresses:
-		if address.shopify_address_id:			
+		if address.shopify_address_id:
 			url = "/admin/customers/{0}/addresses/{1}.json".format(customer.shopify_customer_id,\
-			 address.shopify_address_id)
+			address.shopify_address_id)
 			
 			address["id"] = address["shopify_address_id"]
 			

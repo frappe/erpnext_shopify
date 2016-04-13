@@ -5,7 +5,7 @@ from .exceptions import ShopifyError
 from .utils import make_shopify_log
 from .sync_products import make_item
 from .sync_customers import create_customer
-from frappe.utils import cstr, flt, nowdate
+from frappe.utils import flt, nowdate
 from .shopify_requests import get_request, get_shopify_orders
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 
@@ -34,7 +34,7 @@ def valid_customer_and_product(shopify_order):
 	customer_id = shopify_order.get("customer", {}).get("id")
 	if customer_id:
 		if not frappe.db.get_value("Customer", {"shopify_customer_id": customer_id}, "name"):
-			create_customer(shopify_order.get("customer"))
+			create_customer(shopify_order.get("customer"), shopify_customer_list=[])
 	else:
 		raise _("Customer is mandatory to create order")
 		
@@ -42,7 +42,7 @@ def valid_customer_and_product(shopify_order):
 	for item in shopify_order.get("line_items"):
 		if not frappe.db.get_value("Item", {"shopify_product_id": item.get("product_id")}, "name"):
 			item = get_request("/admin/products/{}.json".format(item.get("product_id")))["product"]
-			make_item(warehouse, item)
+			make_item(warehouse, item, shopify_customer_list=[])
 	
 	return True
 
@@ -77,7 +77,7 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 				"company": company,
 				"status": "Draft"
 			})
-
+		so.flags.ignore_mandatory = True
 		so.save(ignore_permissions=True)
 		so.submit()
 
@@ -95,6 +95,7 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 		si.naming_series = shopify_settings.sales_invoice_series or "SI-Shopify-"
 		si.is_pos = 1
 		si.cash_bank_account = shopify_settings.cash_bank_account
+		si.flags.ignore_mandatory = True
 		si.submit()
 		frappe.db.commit()
 
@@ -106,6 +107,7 @@ def create_delivery_note(shopify_order, shopify_settings, so):
 			dn.shopify_fulfillment_id = fulfillment.get("id")
 			dn.naming_series = shopify_settings.delivery_note_series or "DN-Shopify-"
 			dn.items = get_fulfillment_items(dn.items, fulfillment.get("line_items"), shopify_settings)
+			dn.flags.ignore_mandatory = True
 			dn.save()
 			frappe.db.commit()
 
