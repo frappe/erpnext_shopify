@@ -32,7 +32,7 @@ def create_customer(shopify_customer, shopify_customer_list):
 			"shopify_customer_id": shopify_customer.get("id"),
 			"sync_with_shopify": 1,
 			"customer_group": shopify_settings.customer_group,
-			"territory": _("All Territories"),
+			"territory": frappe.utils.nestedset.get_root_of("Territory"),
 			"customer_type": _("Individual")
 		})
 		customer.flags.ignore_mandatory = True
