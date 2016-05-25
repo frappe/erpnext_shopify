@@ -111,6 +111,7 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"item_code": cstr(shopify_item.get("item_code")) or cstr(shopify_item.get("id")),
 		"item_name": shopify_item.get("title"),
 		"description": shopify_item.get("body_html") or shopify_item.get("title"),
+		"shopify_description": shopify_item.get("body_html") or shopify_item.get("title"),
 		"item_group": get_item_group(shopify_item.get("product_type")),
 		"has_variants": has_variant,
 		"attributes":attributes or [],
@@ -122,7 +123,7 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"net_weight": shopify_item.get("weight"),
 		"default_supplier": get_supplier(shopify_item)
 	}
-	item_dict["web_long_description"] = item_dict["description"]
+	item_dict["web_long_description"] = item_dict["shopify_description"]
 
 	if not is_item_exists(item_dict, attributes, shopify_item_list=shopify_item_list):
 		item_details = get_item_details(shopify_item)
@@ -324,8 +325,8 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
 
 	item_query = """select name, item_code, item_name, item_group,
-		description, has_variants, stock_uom, image, shopify_product_id, shopify_variant_id,
-		sync_qty_with_shopify, net_weight, weight_uom, default_supplier from tabItem
+		description, shopify_description, has_variants, stock_uom, image, shopify_product_id, 
+		shopify_variant_id, sync_qty_with_shopify, net_weight, weight_uom, default_supplier from tabItem
 		where sync_with_shopify=1 and (variant_of is null or variant_of = '')
 		and (disabled is null or disabled = 0) %s """ % last_sync_condition
 
@@ -348,7 +349,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	item_data = { "product":
 		{
 			"title": item.get("item_name"),
-			"body_html": item.get("web_long_description") or item.get("description"),
+			"body_html": item.get("shopify_description") or item.get("web_long_description") or item.get("description"),
 			"product_type": item.get("item_group"),
 			"vendor": item.get("default_supplier"),
 			"published_scope": "global",
