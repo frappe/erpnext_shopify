@@ -114,7 +114,7 @@ def sync_erpnext_customers(shopify_customer_list):
 
 def create_customer_to_shopify(customer):
 	shopify_customer = {
-		"first_name": customer['customer_name']
+		"first_name": customer['customer_name'],
 	}
 	
 	shopify_customer = post_request("/admin/customers.json", { "customer": shopify_customer})
@@ -141,7 +141,8 @@ def sync_customer_address(customer, address):
 	
 def update_customer_to_shopify(customer, last_sync_condition):
 	shopify_customer = {
-		"first_name": customer['customer_name']
+		"first_name": customer['customer_name'],
+		"last_name": ""
 	}
 	
 	try:

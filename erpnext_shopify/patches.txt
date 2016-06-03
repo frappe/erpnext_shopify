@@ -3,3 +3,4 @@ erpnext_shopify.patches.V1_0.create_weight_uom
 erpnext_shopify.patches.V2_0.refactor_id
 erpnext_shopify.patches.V2_0.set_default_supplier
 erpnext_shopify.patches.V2_0.set_shopify_supplier_id
+execute:frappe.permissions.reset_perms("Shopify Log")
