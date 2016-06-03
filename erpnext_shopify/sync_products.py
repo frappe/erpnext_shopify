@@ -3,7 +3,7 @@ import frappe
 from frappe import _
 import requests.exceptions
 from .exceptions import ShopifyError
-from .utils import make_shopify_log
+from .utils import make_shopify_log, disable_shopify_sync_for_item
 from erpnext.stock.utils import get_bin
 from frappe.utils import cstr, flt, cint, get_files_path
 from .shopify_requests import post_request, get_shopify_items, put_request, get_shopify_item_image
@@ -388,9 +388,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 
 		except requests.exceptions.HTTPError, e:
 			if e.args[0] and e.args[0].startswith("404"):
-				erp_item.shopify_product_id = ""
-				erp_item.sync_with_shopify = 0
-				erp_item.save()
+				disable_shopify_sync_for_item(erp_item)
 			else:
 				raise e
 
@@ -567,24 +565,30 @@ def update_item_stock(item_code, shopify_settings, bin=None):
 				"inventory_management": "shopify"
 			})
 
-			put_request(resource, item_data)
+			try:
+				put_request(resource, item_data)
+			except requests.exceptions.HTTPError, e:
+				if e.args[0] and e.args[0].startswith("404"):
+					disable_shopify_sync_for_item(item)
+				else:
+					raise e
 
 def get_product_update_dict_and_resource(shopify_product_id, shopify_variant_id):
 	"""
 	JSON required to update product
 
 	item_data =	{
-		    "product": {
-		        "id": 3649706435 (shopify_product_id),
-		        "variants": [
-		            {
-		                "id": 10577917379 (shopify_variant_id),
-		                "inventory_management": "shopify",
-		                "inventory_quantity": 10
-		            }
-		        ]
-		    }
+		"product": {
+			"id": 3649706435 (shopify_product_id),
+			"variants": [
+				{
+					"id": 10577917379 (shopify_variant_id),
+					"inventory_management": "shopify",
+					"inventory_quantity": 10
+				}
+			]
 		}
+	}
 	"""
 
 	item_data = {

@@ -7,11 +7,14 @@ import frappe
 import json
 from .exceptions import ShopifySetupError
 
-def disable_shopify_sync_for_item(item):
+def disable_shopify_sync_for_item(item, rollback=False):
 	"""Disable Item if not exist on shopify"""
-	frappe.db.rollback()
+	if rollback:
+		frappe.db.rollback()
+		
 	item.sync_with_shopify = 0
-	item.save()
+	item.sync_qty_with_shopify = 0
+	item.save(ignore_permissions=True)
 	frappe.db.commit()
 
 def disable_shopify_sync_on_exception():
@@ -31,7 +34,7 @@ def is_shopify_enabled():
 	return True
 	
 def make_shopify_log(title="Sync Log", status="Queued", method="sync_shopify", message=None, exception=False, 
-name=None, request_data={}):	
+name=None, request_data={}):
 	if not name:
 		name = frappe.db.get_value("Shopify Log", {"status": "Queued"})
 		
