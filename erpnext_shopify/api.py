@@ -40,23 +40,24 @@ def sync_shopify_resources():
 				message= "Updated {customers} customer(s), {products} item(s), {orders} order(s)".format(**frappe.local.form_dict.count_dict))
 
 		except Exception, e:
-			if e.args[0] and e.args[0].startswith("402"):
-				make_shopify_log(
-					title="Shopify has suspended your account",
-					status="Error",
-					method="sync_shopify_resources",
-					message=_("""Shopify has suspended your account till you complete the payment. We have disabled ERPNext Shopify Sync. Please enable it once your complete the payment at Shopify."""),
-					exception=True)
+			if hasattr(e.args[0], "startswith"):
+				if e.args[0] and e.args[0].startswith("402"):
+					make_shopify_log(
+						title="Shopify has suspended your account",
+						status="Error",
+						method="sync_shopify_resources",
+						message=_("""Shopify has suspended your account till you complete the payment. We have disabled ERPNext Shopify Sync. Please enable it once your complete the payment at Shopify."""),
+						exception=True)
 					
-				disable_shopify_sync_on_exception()
-			
+					disable_shopify_sync_on_exception()
+					
+				else:
+					make_shopify_log(title="sync has terminated", status="Error", method="sync_shopify_resources",
+						message=frappe.get_traceback(), exception=True)
+						
 			else:
-				make_shopify_log(
-					title="sync has terminated",
-					status="Error",
-					method="sync_shopify_resources",
-					message=frappe.get_traceback(),
-					exception=True)
+				make_shopify_log(title="sync has terminated", status="Error", method="sync_shopify_resources",
+					message=frappe.get_traceback(), exception=True)
 					
 	elif frappe.local.form_dict.cmd == "erpnext_shopify.api.sync_shopify":
 		make_shopify_log(
