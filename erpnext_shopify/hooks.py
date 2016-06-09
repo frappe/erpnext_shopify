@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from . import __version__ as app_version
 
 app_name = "erpnext_shopify"
 app_title = "ERPNext Shopify"
@@ -8,7 +9,6 @@ app_description = "Shopify connector for ERPNext"
 app_icon = "octicon octicon-file-directory"
 app_color = "grey"
 app_email = "info@frappe.io"
-app_version = "1.5.5"
 app_license = "MIT"
 
 fixtures = ["Custom Field"]
