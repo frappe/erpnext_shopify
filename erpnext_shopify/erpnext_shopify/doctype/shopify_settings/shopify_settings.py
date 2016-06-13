@@ -18,7 +18,7 @@ class ShopifySettings(Document):
 
 	def validate_access_credentials(self):
 		if self.app_type == "Private":
-			if not (self.password and self.api_key and self.shopify_url):
+			if not (self.get_password(raise_exception=False) and self.api_key and self.shopify_url):
 				frappe.msgprint(_("Missing value for Password, API Key or Shopify URL"), raise_exception=ShopifySetupError)
 
 		else:
@@ -28,7 +28,7 @@ class ShopifySettings(Document):
 	def validate_access(self):
 		try:
 			get_request('/admin/products.json', {"api_key": self.api_key,
-				"password": self.password, "shopify_url": self.shopify_url,
+				"password": self.get_password(raise_exception=False), "shopify_url": self.shopify_url,
 				"access_token": self.access_token, "app_type": self.app_type})
 
 		except requests.exceptions.HTTPError:
@@ -36,7 +36,7 @@ class ShopifySettings(Document):
 			frappe.db.rollback()
 			self.set("enable_shopify", 0)
 			frappe.db.commit()
-			
+
 			frappe.throw(_("""Invalid Shopify app credentials or access token"""), ShopifySetupError)
 
 
@@ -47,4 +47,3 @@ def get_series():
 			"sales_invoice_series" : frappe.get_meta("Sales Invoice").get_options("naming_series")  or "SI-Shopify-",
 			"delivery_note_series" : frappe.get_meta("Delivery Note").get_options("naming_series")  or "DN-Shopify-"
 		}
-		
