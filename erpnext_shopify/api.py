@@ -28,33 +28,27 @@ def sync_shopify_resources():
 	
 	if shopify_settings.enable_shopify:
 		try :
+			now_time = frappe.utils.now()
 			validate_shopify_settings(shopify_settings)
 			frappe.local.form_dict.count_dict = {}
 			sync_products(shopify_settings.price_list, shopify_settings.warehouse)
 			sync_customers()
 			sync_orders()
 			update_item_stock_qty()
-			frappe.db.set_value("Shopify Settings", None, "last_sync_datetime", frappe.utils.now())
+			frappe.db.set_value("Shopify Settings", None, "last_sync_datetime", now_time)
 			
 			make_shopify_log(title="Sync Completed", status="Success", method=frappe.local.form_dict.cmd, 
 				message= "Updated {customers} customer(s), {products} item(s), {orders} order(s)".format(**frappe.local.form_dict.count_dict))
 
 		except Exception, e:
-			if hasattr(e.args[0], "startswith"):
-				if e.args[0] and e.args[0].startswith("402"):
-					make_shopify_log(
-						title="Shopify has suspended your account",
-						status="Error",
-						method="sync_shopify_resources",
-						message=_("""Shopify has suspended your account till you complete the payment. We have disabled ERPNext Shopify Sync. Please enable it once your complete the payment at Shopify."""),
-						exception=True)
-					
-					disable_shopify_sync_on_exception()
-					
-				else:
-					make_shopify_log(title="sync has terminated", status="Error", method="sync_shopify_resources",
-						message=frappe.get_traceback(), exception=True)
-						
+			if e.args[0] and hasattr(e.args[0], "startswith") and e.args[0].startswith("402"):
+				make_shopify_log(title="Shopify has suspended your account", status="Error",
+					method="sync_shopify_resources", message=_("""Shopify has suspended your account till
+					you complete the payment. We have disabled ERPNext Shopify Sync. Please enable it once
+					your complete the payment at Shopify."""), exception=True)
+
+				disable_shopify_sync_on_exception()
+			
 			else:
 				make_shopify_log(title="sync has terminated", status="Error", method="sync_shopify_resources",
 					message=frappe.get_traceback(), exception=True)

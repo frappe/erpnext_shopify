@@ -4,3 +4,4 @@ erpnext_shopify.patches.V2_0.refactor_id
 erpnext_shopify.patches.V2_0.set_default_supplier
 erpnext_shopify.patches.V2_0.set_shopify_supplier_id
 execute:frappe.permissions.reset_perms("Shopify Log")
+erpnext_shopify.patches.V2_0.add_field_shopify_description
