@@ -1,12 +1,7 @@
-cur_frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(doc, dt, dn){
-	return {
-		"query": "erpnext.controllers.queries.tax_account_query",
-		"filters": {
-			"account_type": ["Tax", "Chargeable", "Expense Account"],
-			"company": frappe.defaults.get_default("Company")
-		}
-	}
-}
+// Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
+// License: GNU General Public License v3. See license.txt
+
+frappe.provide("erpnext_shopify.shopify_settings");
 
 frappe.ui.form.on("Shopify Settings", "onload", function(frm, dt, dn){
 	frappe.call({
@@ -17,6 +12,7 @@ frappe.ui.form.on("Shopify Settings", "onload", function(frm, dt, dn){
 			})
 		}
 	})
+	erpnext_shopify.shopify_settings.setup_queries(frm);
 })
 
 frappe.ui.form.on("Shopify Settings", "app_type", function(frm, dt, dn) {
@@ -58,19 +54,45 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 	frappe.call({
 		method: "erpnext_shopify.api.get_log_status",
 		callback: function(r) {
-			frm.dashboard.set_headline_alert(r.message.text, r.message.alert_class)
+			if(r.message){
+				frm.dashboard.set_headline_alert(r.message.text, r.message.alert_class)
+			}
 		}
 	})
 
 })
 
-cur_frm.fields_dict["cash_bank_account"].get_query = function(doc) {
-	return {
-		filters: [
-			["Account", "account_type", "in", ["Cash", "Bank"]],
-			["Account", "root_type", "=", "Asset"],
-			["Account", "is_group", "=",0],
-			["Account", "company", "=", doc.company]
-		]
+
+$.extend(erpnext_shopify.shopify_settings, {
+	setup_queries: function(frm) {
+		frm.fields_dict["warehouse"].get_query = function(doc) {
+			return {
+				filters:{
+					"company": doc.company,
+					"is_group": "No"
+				}
+			}
+		}
+		
+		frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(doc, dt, dn){
+			return {
+				"query": "erpnext.controllers.queries.tax_account_query",
+				"filters": {
+					"account_type": ["Tax", "Chargeable", "Expense Account"],
+					"company": frappe.defaults.get_default("Company")
+				}
+			}
+		}
+		
+		frm.fields_dict["cash_bank_account"].get_query = function(doc) {
+			return {
+				filters: [
+					["Account", "account_type", "in", ["Cash", "Bank"]],
+					["Account", "root_type", "=", "Asset"],
+					["Account", "is_group", "=",0],
+					["Account", "company", "=", doc.company]
+				]
+			}
+		}
 	}
-}
+})
