@@ -10,14 +10,12 @@ from .sync_orders import sync_orders
 from .sync_customers import sync_customers
 from .sync_products import sync_products, update_item_stock_qty
 from .utils import disable_shopify_sync_on_exception, make_shopify_log
+from frappe.utils.background_jobs import enqueue
 
 @frappe.whitelist()
 def sync_shopify():
 	"Enqueue longjob for syncing shopify"
-	
-	from frappe.tasks import scheduler_task
-	scheduler_task.delay(site=frappe.local.site, event="hourly_long",
-		handler="erpnext_shopify.api.sync_shopify_resources")
+	enqueue("erpnext_shopify.api.sync_shopify_resources", queue='long')
 	frappe.msgprint(_("Queued for syncing. It may take a few minutes to an hour if this is your first sync."))
 
 @frappe.whitelist()
