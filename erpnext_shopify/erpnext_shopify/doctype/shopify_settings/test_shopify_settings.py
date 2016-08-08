@@ -116,8 +116,10 @@ class ShopifySettings(unittest.TestCase):
 				
 		with open (os.path.join(os.path.dirname(__file__), "test_data", "shopify_order.json")) as shopify_order:
 			shopify_order = json.load(shopify_order)
+
+		shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 		
-		create_order(shopify_order.get("order"), "_Test Company")
+		create_order(shopify_order.get("order"), shopify_settings, "_Test Company")
 
 		sales_order = frappe.get_doc("Sales Order", {"shopify_order_id": cstr(shopify_order.get("order").get("id"))})
 
