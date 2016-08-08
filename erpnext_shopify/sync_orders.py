@@ -101,7 +101,7 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 
 def create_delivery_note(shopify_order, shopify_settings, so):
 	for fulfillment in shopify_order.get("fulfillments"):
-		if not frappe.db.get_value("Delivery Note", {"shopify_order_id": fulfillment.get("id")}, "name") and so.docstatus==1:
+		if not frappe.db.get_value("Delivery Note", {"shopify_fulfillment_id": fulfillment.get("id")}, "name") and so.docstatus==1:
 			dn = make_delivery_note(so.name)
 			dn.shopify_order_id = fulfillment.get("order_id")
 			dn.shopify_fulfillment_id = fulfillment.get("id")
