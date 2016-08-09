@@ -18,7 +18,6 @@ def check_api_call_limit(response):
 
 def get_shopify_settings():
 	d = frappe.get_doc("Shopify Settings")
-	d.password = d.get_password()
 
 	if d.shopify_url:
 		return d.as_dict()
