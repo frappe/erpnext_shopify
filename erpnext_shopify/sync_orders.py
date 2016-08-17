@@ -67,10 +67,10 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 			"delivery_date": nowdate(),
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
-			"apply_discount_on": "Net Total",
-			"discount_amount": get_discounted_amount(shopify_order),
 			"items": get_order_items(shopify_order.get("line_items"), shopify_settings),
-			"taxes": get_order_taxes(shopify_order, shopify_settings)
+			"taxes": get_order_taxes(shopify_order, shopify_settings),
+			"apply_discount_on": "Grand Total",
+			"discount_amount": get_discounted_amount(shopify_order),
 		})
 		
 		if company:
@@ -161,7 +161,8 @@ def get_order_taxes(shopify_order, shopify_settings):
 
 def set_included_in_print_rate(shopify_order):
 	if shopify_order.get("total_tax"):
-		if (flt(shopify_order.get("total_price")) - flt(shopify_order.get("total_line_items_price"))) == 0.0:
+		total_price = flt(shopify_order.get("total_line_items_price")) - flt(shopify_order.get("total_discounts"))
+		if (flt(shopify_order.get("total_price")) - total_price) == 0.0:
 			return 1
 	return 0
 
