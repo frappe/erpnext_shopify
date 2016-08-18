@@ -4,8 +4,16 @@ from frappe.utils import cstr
 from frappe import _
 
 def execute():
-	shopify_orders = get_shopify_orders(ignore_filter_conditions=True)
-	shopify_orders = build_shopify_order_dict(shopify_orders, key="id")
+	shopify_settings = frappe.db.get_value("Shopify Settings", None, 
+		["enable_shopify", "shopify_url"], as_dict=1)
+	if not (shopify_settings and shopify_settings.enable_shopify and shopify_settings.shopify_url):
+		return
+	
+	try:
+		shopify_orders = get_shopify_orders(ignore_filter_conditions=True)
+		shopify_orders = build_shopify_order_dict(shopify_orders, key="id")
+	except:
+		return
 
 	for so in frappe.db.sql("""select name, shopify_order_id, discount_amount from `tabSales Order` 
 		where shopify_order_id is not null and shopify_order_id != '' and
