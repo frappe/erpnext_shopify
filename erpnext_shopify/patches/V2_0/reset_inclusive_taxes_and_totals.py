@@ -4,6 +4,9 @@ from frappe.utils import cstr
 from frappe import _
 
 def execute():
+	if not frappe.db.get_single_value("Shopify Settings", "enable_shopify"):
+		return
+	
 	shopify_orders = get_shopify_orders(ignore_filter_conditions=True)
 	shopify_orders = build_shopify_order_dict(shopify_orders, key="id")
 
