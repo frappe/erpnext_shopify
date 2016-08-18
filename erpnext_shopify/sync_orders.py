@@ -67,10 +67,10 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 			"delivery_date": nowdate(),
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
-			"apply_discount_on": "Net Total",
-			"discount_amount": get_discounted_amount(shopify_order),
 			"items": get_order_items(shopify_order.get("line_items"), shopify_settings),
-			"taxes": get_order_taxes(shopify_order, shopify_settings)
+			"taxes": get_order_taxes(shopify_order, shopify_settings),
+			"apply_discount_on": "Grand Total",
+			"discount_amount": get_discounted_amount(shopify_order),
 		})
 		
 		if company:
@@ -152,18 +152,12 @@ def get_order_taxes(shopify_order, shopify_settings):
 			"account_head": get_tax_account_head(tax),
 			"description": "{0} - {1}%".format(tax.get("title"), tax.get("rate") * 100.0),
 			"rate": tax.get("rate") * 100.00,
-			"included_in_print_rate": set_included_in_print_rate(shopify_order)
+			"included_in_print_rate": 1 if shopify_order.get("taxes_included") else 0
 		})
 
 	taxes = update_taxes_with_shipping_lines(taxes, shopify_order.get("shipping_lines"))
 
 	return taxes
-
-def set_included_in_print_rate(shopify_order):
-	if shopify_order.get("total_tax"):
-		if (flt(shopify_order.get("total_price")) - flt(shopify_order.get("total_line_items_price"))) == 0.0:
-			return 1
-	return 0
 
 def update_taxes_with_shipping_lines(taxes, shipping_lines):
 	for shipping_charge in shipping_lines:
