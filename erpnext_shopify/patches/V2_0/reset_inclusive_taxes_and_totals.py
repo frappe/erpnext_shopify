@@ -4,8 +4,9 @@ from frappe.utils import cstr
 from frappe import _
 
 def execute():
-	shopify_settings = frappe.db.get_value("Shopify Settings", None, 
+	shopify_settings = frappe.db.get_value("Shopify Settings", None,
 		["enable_shopify", "shopify_url"], as_dict=1)
+
 	if not (shopify_settings and shopify_settings.enable_shopify and shopify_settings.shopify_url):
 		return
 	
