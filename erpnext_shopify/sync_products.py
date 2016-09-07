@@ -332,7 +332,7 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 	for item in frappe.db.sql(item_query, as_dict=1):
 		if item.shopify_product_id not in shopify_item_list:
 			try:
-				sync_item_with_shopify(item, price_list, warehouse)
+				sync_item_with_shopify(item, price_list, warehouse, shopify_settings.publish_globally)
 				frappe.local.form_dict.count_dict["products"] += 1
 
 			except ShopifyError, e:
@@ -342,7 +342,7 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
 
-def sync_item_with_shopify(item, price_list, warehouse):
+def sync_item_with_shopify(item, price_list, warehouse, publish_globally=False):
 	variant_item_name_list = []
 
 	item_data = { "product":
@@ -351,11 +351,15 @@ def sync_item_with_shopify(item, price_list, warehouse):
 			"body_html": item.get("shopify_description") or item.get("web_long_description") or item.get("description"),
 			"product_type": item.get("item_group"),
 			"vendor": item.get("default_supplier"),
+		}
+	}
+
+	if publish_globally:
+		item_data["product"].update({
 			"published_scope": "global",
 			"published_status": "published",
 			"published_at": datetime.datetime.now().isoformat()
-		}
-	}
+		})
 
 	if item.get("has_variants"):
 		variant_list, options, variant_item_name = get_variant_attributes(item, price_list, warehouse)
@@ -551,7 +555,7 @@ def update_item_stock(item_code, shopify_settings, bin=None):
 			bin = get_bin(item_code, shopify_settings.warehouse)
 
 		if not item.shopify_product_id and not item.variant_of:
-			sync_item_with_shopify(item, shopify_settings.price_list, shopify_settings.warehouse)
+			sync_item_with_shopify(item, shopify_settings.price_list, shopify_settings.warehouse,  shopify_settings.publish_globally)
 
 		if item.sync_with_shopify and item.shopify_product_id and shopify_settings.warehouse == bin.warehouse:
 			if item.variant_of:
