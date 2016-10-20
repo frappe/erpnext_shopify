@@ -5,7 +5,7 @@ from .exceptions import ShopifyError
 from .utils import make_shopify_log
 from .sync_products import make_item
 from .sync_customers import create_customer
-from frappe.utils import flt, nowdate
+from frappe.utils import flt, nowdate, cint
 from .shopify_requests import get_request, get_shopify_orders
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
 
@@ -14,10 +14,12 @@ def sync_orders():
 
 def sync_shopify_orders():
 	frappe.local.form_dict.count_dict["orders"] = 0
+	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+	
 	for shopify_order in get_shopify_orders():
 		if valid_customer_and_product(shopify_order):
 			try:
-				create_order(shopify_order)
+				create_order(shopify_order, shopify_settings)
 				frappe.local.form_dict.count_dict["orders"] += 1
 				
 			except ShopifyError, e:
@@ -46,13 +48,12 @@ def valid_customer_and_product(shopify_order):
 	
 	return True
 
-def create_order(shopify_order, company=None):
-	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+def create_order(shopify_order, shopify_settings, company=None):
 	so = create_sales_order(shopify_order, shopify_settings, company)
-	if shopify_order.get("financial_status") == "paid":
+	if shopify_order.get("financial_status") == "paid" and cint(shopify_settings.sync_sales_invoice):
 		create_sales_invoice(shopify_order, shopify_settings, so)
 
-	if shopify_order.get("fulfillments"):
+	if shopify_order.get("fulfillments") and cint(shopify_settings.sync_delivery_note):
 		create_delivery_note(shopify_order, shopify_settings, so)
 
 def create_sales_order(shopify_order, shopify_settings, company=None):
@@ -66,10 +67,10 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 			"delivery_date": nowdate(),
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
-			"apply_discount_on": "Net Total",
-			"discount_amount": get_discounted_amount(shopify_order),
 			"items": get_order_items(shopify_order.get("line_items"), shopify_settings),
-			"taxes": get_order_taxes(shopify_order, shopify_settings)
+			"taxes": get_order_taxes(shopify_order, shopify_settings),
+			"apply_discount_on": "Grand Total",
+			"discount_amount": get_discounted_amount(shopify_order),
 		})
 		
 		if company:
@@ -88,8 +89,8 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 	return so
 
 def create_sales_invoice(shopify_order, shopify_settings, so):
-	if not frappe.db.get_value("Sales Invoice", {"shopify_order_id": shopify_order.get("id")}, "name") and so.docstatus==1 \
-		and not so.per_billed:
+	if not frappe.db.get_value("Sales Invoice", {"shopify_order_id": shopify_order.get("id")}, "name")\
+		and so.docstatus==1 and not so.per_billed:
 		si = make_sales_invoice(so.name)
 		si.shopify_order_id = shopify_order.get("id")
 		si.naming_series = shopify_settings.sales_invoice_series or "SI-Shopify-"
@@ -101,7 +102,8 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 
 def create_delivery_note(shopify_order, shopify_settings, so):
 	for fulfillment in shopify_order.get("fulfillments"):
-		if not frappe.db.get_value("Delivery Note", {"shopify_order_id": fulfillment.get("id")}, "name") and so.docstatus==1:
+		if not frappe.db.get_value("Delivery Note", {"shopify_fulfillment_id": fulfillment.get("id")}, "name")\
+			and so.docstatus==1:
 			dn = make_delivery_note(so.name)
 			dn.shopify_order_id = fulfillment.get("order_id")
 			dn.shopify_fulfillment_id = fulfillment.get("id")
@@ -113,14 +115,7 @@ def create_delivery_note(shopify_order, shopify_settings, so):
 
 def get_fulfillment_items(dn_items, fulfillment_items, shopify_settings):
 	return [dn_item.update({"qty": item.get("quantity")}) for item in fulfillment_items for dn_item in dn_items\
-			 if get_item_code(item) == dn_item.item_code]
-			 
-	# items = []
-# 	for shopify_item in fulfillment_items:
-# 		for item in dn_items:
-# 			if get_item_code(shopify_item) == item.item_code:
-# 				items.append(item.update({"qty": item.get("quantity")}))
-# 	return items
+			if get_item_code(item) == dn_item.item_code]
 	
 def get_discounted_amount(order):
 	discounted_amount = 0.0
@@ -157,18 +152,12 @@ def get_order_taxes(shopify_order, shopify_settings):
 			"account_head": get_tax_account_head(tax),
 			"description": "{0} - {1}%".format(tax.get("title"), tax.get("rate") * 100.0),
 			"rate": tax.get("rate") * 100.00,
-			"included_in_print_rate": set_included_in_print_rate(shopify_order)
+			"included_in_print_rate": 1 if shopify_order.get("taxes_included") else 0
 		})
 
 	taxes = update_taxes_with_shipping_lines(taxes, shopify_order.get("shipping_lines"))
 
 	return taxes
-
-def set_included_in_print_rate(shopify_order):
-	if shopify_order.get("total_tax"):
-		if (flt(shopify_order.get("total_price")) - flt(shopify_order.get("total_line_items_price"))) == 0.0:
-			return 1
-	return 0
 
 def update_taxes_with_shipping_lines(taxes, shipping_lines):
 	for shipping_charge in shipping_lines:
