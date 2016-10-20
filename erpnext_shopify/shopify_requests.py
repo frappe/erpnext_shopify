@@ -20,7 +20,8 @@ def get_shopify_settings():
 	d = frappe.get_doc("Shopify Settings")
 	
 	if d.shopify_url:
-		d.password = d.get_password()
+		if d.app_type == "Private" and d.password:
+			d.password = d.get_password()
 		return d.as_dict()
 	else:
 		frappe.throw(_("Shopify store URL is not configured on Shopify Settings"), ShopifyError)
