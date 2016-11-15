@@ -94,11 +94,16 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 		si = make_sales_invoice(so.name)
 		si.shopify_order_id = shopify_order.get("id")
 		si.naming_series = shopify_settings.sales_invoice_series or "SI-Shopify-"
-		si.is_pos = 1
-		si.cash_bank_account = shopify_settings.cash_bank_account
 		si.flags.ignore_mandatory = True
 		si.submit()
+		make_payament_entry_against_sales_invoice(si, shopify_settings)
 		frappe.db.commit()
+
+def make_payament_entry_against_sales_invoice(doc, shopify_settings):
+	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+	payemnt_entry = get_payment_entry(doc.doctype, doc.name, bank_account=shopify_settings.cash_bank_account)
+	payemnt_entry.flags.ignore_mandatory = True
+	payemnt_entry.submit()
 
 def create_delivery_note(shopify_order, shopify_settings, so):
 	for fulfillment in shopify_order.get("fulfillments"):
