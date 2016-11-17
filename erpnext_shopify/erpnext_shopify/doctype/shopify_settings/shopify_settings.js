@@ -32,7 +32,7 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 		frm.toggle_reqd("sales_invoice_series", frm.doc.sync_sales_invoice);
 		frm.toggle_reqd("delivery_note_series", frm.doc.sync_delivery_note);
 
-		cur_frm.add_custom_button(__('Sync Shopify'),
+		frm.add_custom_button(__('Sync Shopify'),
 			function() {
 				frappe.call({
 					method:"erpnext_shopify.api.sync_shopify",
@@ -41,14 +41,35 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 	}
 
 	if(!frm.doc.access_token && !frm.doc.api_key) {
-		cur_frm.add_custom_button(__("Connect to Shopify"),
+		frm.add_custom_button(__("Connect to Shopify"),
 			function(){
 				window.open("https://apps.shopify.com/erpnext");
 			}).addClass("btn-primary")
 	}
 
-	cur_frm.add_custom_button(__("Shopify Log"), function(){
+	frm.add_custom_button(__("Shopify Log"), function(){
 		frappe.set_route("List", "Shopify Log");
+	})
+	
+	frm.add_custom_button(__("Reset Last Sync Date"), function(){
+		var dialog = new frappe.ui.Dialog({
+			title: __("Reset Last Sync Date"),
+			fields: [
+				{"fieldtype": "Datetime", "label": __("Date"), "fieldname": "last_sync_date", "reqd": 1 },
+				{"fieldtype": "Button", "label": __("Set last sync date"), "fieldname": "set_last_sync_date", "cssClass": "btn-primary"},
+			]
+		});
+
+		dialog.fields_dict.set_last_sync_date.$input.click(function() {
+			args = dialog.get_values();
+			if(!args) return;
+
+			frm.set_value("last_sync_datetime", args['last_sync_date']);
+			frm.save();
+
+			dialog.hide();
+		});
+		dialog.show();
 	})
 
 
