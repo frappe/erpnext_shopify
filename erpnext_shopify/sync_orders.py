@@ -103,6 +103,8 @@ def make_payament_entry_against_sales_invoice(doc, shopify_settings):
 	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 	payemnt_entry = get_payment_entry(doc.doctype, doc.name, bank_account=shopify_settings.cash_bank_account)
 	payemnt_entry.flags.ignore_mandatory = True
+	payemnt_entry.reference_no = doc.name
+	payemnt_entry.reference_date = nowdate()
 	payemnt_entry.submit()
 
 def create_delivery_note(shopify_order, shopify_settings, so):
