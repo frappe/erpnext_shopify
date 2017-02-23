@@ -25,6 +25,8 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 		frm.toggle_reqd("price_list", true);
 		frm.toggle_reqd("warehouse", true);
 		frm.toggle_reqd("taxes", true);
+		frm.toggle_reqd("company", true);
+		frm.toggle_reqd("cost_center", true);
 		frm.toggle_reqd("cash_bank_account", true);
 		frm.toggle_reqd("sales_order_series", true);
 		frm.toggle_reqd("customer_group", true);
@@ -95,17 +97,17 @@ $.extend(erpnext_shopify.shopify_settings, {
 				}
 			}
 		}
-		
+
 		frm.fields_dict["taxes"].grid.get_field("tax_account").get_query = function(doc, dt, dn){
 			return {
 				"query": "erpnext.controllers.queries.tax_account_query",
 				"filters": {
 					"account_type": ["Tax", "Chargeable", "Expense Account"],
-					"company": frappe.defaults.get_default("Company")
+					"company": doc.company
 				}
 			}
 		}
-		
+
 		frm.fields_dict["cash_bank_account"].get_query = function(doc) {
 			return {
 				filters: [
@@ -114,6 +116,15 @@ $.extend(erpnext_shopify.shopify_settings, {
 					["Account", "is_group", "=",0],
 					["Account", "company", "=", doc.company]
 				]
+			}
+		}
+
+		frm.fields_dict["cost_center"].get_query = function(doc) {
+			return {
+				filters:{
+					"company": doc.company,
+					"is_group": "No"
+				}
 			}
 		}
 	}
