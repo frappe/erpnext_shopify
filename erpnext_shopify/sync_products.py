@@ -93,7 +93,7 @@ def create_attribute(shopify_item):
 def set_new_attribute_values(item_attr, values):
 	for attr_value in values:
 		if not any((d.abbr.lower() == attr_value.lower() or d.attribute_value.lower() == attr_value.lower())\
-		 for d in item_attr.item_attribute_values):
+		for d in item_attr.item_attribute_values):
 			item_attr.append("item_attribute_values", {
 				"attribute_value": attr_value,
 				"abbr": attr_value
@@ -215,11 +215,15 @@ def get_item_image(shopify_item):
 
 def get_supplier(shopify_item):
 	if shopify_item.get("vendor"):
-		if not frappe.db.get_value("Supplier", {"shopify_supplier_id": shopify_item.get("vendor").lower()}, "name"):
+		supplier = frappe.db.sql("""select name from tabSupplier
+			where name = %s or shopify_supplier_id = %s """, (shopify_item.get("vendor"),
+			shopify_item.get("vendor").lower()), as_list=1)
+
+		if not supplier:
 			supplier = frappe.get_doc({
 				"doctype": "Supplier",
 				"supplier_name": shopify_item.get("vendor"),
-				"shopify_supplier_id": shopify_item.get("vendor"),
+				"shopify_supplier_id": shopify_item.get("vendor").lower(),
 				"supplier_type": get_supplier_type()
 			}).insert()
 			return supplier.name
