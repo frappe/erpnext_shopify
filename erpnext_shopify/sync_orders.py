@@ -65,6 +65,7 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 			"shopify_order_id": shopify_order.get("id"),
 			"customer": frappe.db.get_value("Customer", {"shopify_customer_id": shopify_order.get("customer").get("id")}, "name"),
 			"delivery_date": nowdate(),
+			"company": shopify_settings.company,
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
 			"items": get_order_items(shopify_order.get("line_items"), shopify_settings),
@@ -95,9 +96,14 @@ def create_sales_invoice(shopify_order, shopify_settings, so):
 		si.shopify_order_id = shopify_order.get("id")
 		si.naming_series = shopify_settings.sales_invoice_series or "SI-Shopify-"
 		si.flags.ignore_mandatory = True
+		set_cost_center(si.items, shopify_settings.cost_center)
 		si.submit()
 		make_payament_entry_against_sales_invoice(si, shopify_settings)
 		frappe.db.commit()
+
+def set_cost_center(items, cost_center):
+	for item in items:
+		item.cost_center = cost_center
 
 def make_payament_entry_against_sales_invoice(doc, shopify_settings):
 	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
@@ -159,20 +165,22 @@ def get_order_taxes(shopify_order, shopify_settings):
 			"account_head": get_tax_account_head(tax),
 			"description": "{0} - {1}%".format(tax.get("title"), tax.get("rate") * 100.0),
 			"rate": tax.get("rate") * 100.00,
-			"included_in_print_rate": 1 if shopify_order.get("taxes_included") else 0
+			"included_in_print_rate": 1 if shopify_order.get("taxes_included") else 0,
+			"cost_center": shopify_settings.cost_center
 		})
 
-	taxes = update_taxes_with_shipping_lines(taxes, shopify_order.get("shipping_lines"))
+	taxes = update_taxes_with_shipping_lines(taxes, shopify_order.get("shipping_lines"), shopify_settings)
 
 	return taxes
 
-def update_taxes_with_shipping_lines(taxes, shipping_lines):
+def update_taxes_with_shipping_lines(taxes, shipping_lines, shopify_settings):
 	for shipping_charge in shipping_lines:
 		taxes.append({
 			"charge_type": _("Actual"),
 			"account_head": get_tax_account_head(shipping_charge),
 			"description": shipping_charge["title"],
-			"tax_amount": shipping_charge["price"]
+			"tax_amount": shipping_charge["price"],
+			"cost_center": shopify_settings.cost_center
 		})
 
 	return taxes
