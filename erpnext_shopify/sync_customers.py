@@ -68,8 +68,10 @@ def create_customer_address(customer, shopify_customer):
 				"country": address.get("country"),
 				"phone": address.get("phone"),
 				"email_id": shopify_customer.get("email"),
-				"customer": customer.name,
-				"customer_name":  customer.customer_name
+				"links": [{
+					"link_doctype": "Customer",
+					"link_name": customer.name
+				}]
 			}).insert()
 			
 		except Exception, e:
@@ -104,7 +106,7 @@ def sync_erpnext_customers(shopify_customer_list):
 			
 			else:
 				if customer.shopify_customer_id not in shopify_customer_list:
-					update_customer_to_shopify(customer, last_sync_condition)
+					update_customer_to_shopify(customer, shopify_settings.last_sync_datetime)
 			
 			frappe.local.form_dict.count_dict["customers"] += 1
 			frappe.db.commit()
@@ -139,7 +141,7 @@ def sync_customer_address(customer, address):
 	address.shopify_address_id = shopify_address['customer_address'].get("id")
 	address.save()
 	
-def update_customer_to_shopify(customer, last_sync_condition):
+def update_customer_to_shopify(customer, last_sync_datetime):
 	shopify_customer = {
 		"first_name": customer['customer_name'],
 		"last_name": ""
@@ -148,7 +150,7 @@ def update_customer_to_shopify(customer, last_sync_condition):
 	try:
 		put_request("/admin/customers/{0}.json".format(customer.shopify_customer_id),\
 			{ "customer": shopify_customer})
-		update_address_details(customer, last_sync_condition)
+		update_address_details(customer, last_sync_datetime)
 		
 	except requests.exceptions.HTTPError, e:
 		if e.args[0] and e.args[0].startswith("404"):
@@ -160,8 +162,8 @@ def update_customer_to_shopify(customer, last_sync_condition):
 		else:
 			raise
 			
-def update_address_details(customer, last_sync_condition):
-	customer_addresses = get_customer_addresses(customer, last_sync_condition)
+def update_address_details(customer, last_sync_datetime):
+	customer_addresses = get_customer_addresses(customer, last_sync_datetime)
 	for address in customer_addresses:
 		if address.shopify_address_id:
 			url = "/admin/customers/{0}/addresses/{1}.json".format(customer.shopify_customer_id,\
@@ -176,15 +178,17 @@ def update_address_details(customer, last_sync_condition):
 		else:
 			sync_customer_address(customer, address)
 			
-def get_customer_addresses(customer, last_sync_cond=None):
-	conditions = ["addr.customer = '{0}' ".format(customer['name'])]
+def get_customer_addresses(customer, last_sync_datetime=None):
+	conditions = ["dl.parent = addr.name", "dl.link_doctype = 'Customer'",
+		"dl.link_name = '{0}'".format(customer['name'])]
 	
-	if last_sync_cond:
-		conditions.append(last_sync_cond)
+	if last_sync_datetime:
+		last_sync_condition = "addr.modified >= '{0}'".format(last_sync_datetime)
+		conditions.append(last_sync_condition)
 	
 	address_query = """select addr.name, addr.address_line1 as address1, addr.address_line2 as address2,
-		addr.city as city, addr.state as province, addr.country as country, addr.pincode as zip, 
-		addr.shopify_address_id from tabAddress addr 
-		where {0}""".format(' and '.join(conditions)) 
+		addr.city as city, addr.state as province, addr.country as country, addr.pincode as zip,
+		addr.shopify_address_id from tabAddress addr, `tabDynamic Link` dl
+		where {0}""".format(' and '.join(conditions))
 			
 	return frappe.db.sql(address_query, as_dict=1)
