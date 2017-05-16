@@ -376,14 +376,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	erp_item.flags.ignore_mandatory = True
 	
 	if not item.get("shopify_product_id"):
-		new_item = post_request("/admin/products.json", item_data)
-		erp_item.shopify_product_id = new_item['product'].get("id")
-
-		if not item.get("has_variants"):
-			erp_item.shopify_variant_id = new_item['product']["variants"][0].get("id")
-
-		erp_item.save()
-		update_variant_item(new_item, variant_item_name_list)
+		create_new_item_to_shopify(ite, item_data, erp_item, variant_item_name_list)
 
 	else:
 		item_data["product"]["id"] = item.get("shopify_product_id")
@@ -392,12 +385,26 @@ def sync_item_with_shopify(item, price_list, warehouse):
 
 		except requests.exceptions.HTTPError, e:
 			if e.args[0] and e.args[0].startswith("404"):
-				disable_shopify_sync_for_item(erp_item)
+				if frappe.db.get_value("Shopify Settings", "Shopify Settings", "if_not_exists_create_item_to_shopify"):
+					item_data["product"]["id"] = ''
+					create_new_item_to_shopify(item, item_data, erp_item, variant_item_name_list)
+				else:
+					disable_shopify_sync_for_item(erp_item)
 			else:
 				raise e
 
 	sync_item_image(erp_item)
 	frappe.db.commit()
+
+def create_new_item_to_shopify(item, item_data, erp_item, variant_item_name_list):
+	new_item = post_request("/admin/products.json", item_data)
+	erp_item.shopify_product_id = new_item['product'].get("id")
+
+	if not item.get("has_variants"):
+		erp_item.shopify_variant_id = new_item['product']["variants"][0].get("id")
+
+	erp_item.save()
+	update_variant_item(new_item, variant_item_name_list)
 
 def sync_item_image(item):
 	image_info = {
@@ -534,7 +541,7 @@ def trigger_update_item_stock(doc, method):
 def update_item_stock_qty():
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	for item in frappe.get_all("Item", fields=['name', "item_code"],
-		filters={"sync_with_shopify": 1, "disabled": ("!=", 1)}):
+		filters={"sync_with_shopify": 1, "disabled": ("!=", 1), 'shopify_variant_id': ('!=', '')}):
 		try:
 			update_item_stock(item.item_code, shopify_settings)
 		except ShopifyError, e:
@@ -605,6 +612,5 @@ def get_product_update_dict_and_resource(shopify_product_id, shopify_variant_id)
 	item_data["product"]["variants"].append({
 		"id": shopify_variant_id
 	})
-
 	resource = "admin/products/{}.json".format(shopify_product_id)
 	return item_data, resource
