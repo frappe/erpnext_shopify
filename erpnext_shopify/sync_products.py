@@ -376,7 +376,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	erp_item.flags.ignore_mandatory = True
 	
 	if not item.get("shopify_product_id"):
-		create_new_item_to_shopify(ite, item_data, erp_item, variant_item_name_list)
+		create_new_item_to_shopify(item, item_data, erp_item, variant_item_name_list)
 
 	else:
 		item_data["product"]["id"] = item.get("shopify_product_id")
