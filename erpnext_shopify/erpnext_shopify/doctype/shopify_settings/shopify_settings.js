@@ -34,12 +34,11 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 		frm.toggle_reqd("sales_invoice_series", frm.doc.sync_sales_invoice);
 		frm.toggle_reqd("delivery_note_series", frm.doc.sync_delivery_note);
 
-		frm.add_custom_button(__('Sync Shopify'),
-			function() {
-				frappe.call({
-					method:"erpnext_shopify.api.sync_shopify",
-				})
-			}, 'icon-sitemap')
+		frm.add_custom_button(__('Sync Shopify'), function() {
+			frappe.call({
+				method:"erpnext_shopify.api.sync_shopify",
+			})
+		}).addClass("btn-primary");
 	}
 
 	if(!frm.doc.access_token && !frm.doc.api_key) {
