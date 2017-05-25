@@ -21,7 +21,7 @@ script:
   - bench get-app erpnext https://github.com/frappe/erpnext.git --branch master
   - bench get-app erpnext_shopify $TRAVIS_BUILD_DIR
   - bench use test_site
-  - bench reinstall
+  - bench reinstall --yes
   - bench build
   - bench build-website
   - bench start &
