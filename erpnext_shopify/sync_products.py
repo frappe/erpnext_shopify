@@ -567,24 +567,23 @@ def update_item_stock(item_code, shopify_settings, bin=None):
 		if item.sync_with_shopify and item.shopify_product_id and shopify_settings.warehouse == bin.warehouse:
 			if item.variant_of:
 				item_data, resource = get_product_update_dict_and_resource(frappe.get_value("Item",
-					item.variant_of, "shopify_product_id"), item.shopify_variant_id)
+					item.variant_of, "shopify_product_id"), item.shopify_variant_id, is_variant=True,
+					actual_qty=bin.actual_qty)
 			else:
-				item_data, resource = get_product_update_dict_and_resource(item.shopify_product_id, item.shopify_variant_id)
-
-			item_data["product"]["variants"][0].update({
-				"inventory_quantity": cint(bin.actual_qty),
-				"inventory_management": "shopify"
-			})
+				item_data, resource = get_product_update_dict_and_resource(item.shopify_product_id,
+					item.shopify_variant_id, actual_qty=bin.actual_qty)
 
 			try:
 				put_request(resource, item_data)
 			except requests.exceptions.HTTPError, e:
 				if e.args[0] and e.args[0].startswith("404"):
+					make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
+						request_data=item_data, exception=True)
 					disable_shopify_sync_for_item(item)
 				else:
 					raise e
 
-def get_product_update_dict_and_resource(shopify_product_id, shopify_variant_id):
+def get_product_update_dict_and_resource(shopify_product_id, shopify_variant_id, is_variant=False, actual_qty=0):
 	"""
 	JSON required to update product
 
@@ -608,9 +607,20 @@ def get_product_update_dict_and_resource(shopify_product_id, shopify_variant_id)
 		}
 	}
 
-	item_data["product"]["id"] = shopify_product_id
-	item_data["product"]["variants"].append({
-		"id": shopify_variant_id
-	})
-	resource = "admin/products/{}.json".format(shopify_product_id)
+	varient_data = {
+		"id": shopify_variant_id,
+		"inventory_quantity": cint(actual_qty),
+		"inventory_management": "shopify"
+	}
+
+	if is_variant:
+		item_data = {
+			"variant": varient_data
+		}
+		resource = "admin/variants/{}.json".format(shopify_variant_id)
+	else:
+		item_data["product"]["id"] = shopify_product_id
+		item_data["product"]["variants"].append(varient_data)
+		resource = "admin/products/{}.json".format(shopify_product_id)
+
 	return item_data, resource
