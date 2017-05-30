@@ -464,7 +464,7 @@ def update_variant_item(new_item, item_code_list):
 		erp_item.save()
 
 def get_variant_attributes(item, price_list, warehouse):
-	options, variant_list, variant_item_name = [], [], []
+	options, variant_list, variant_item_name, attr_sequence = [], [], [], []
 	attr_dict = {}
 
 	for i, variant in enumerate(frappe.get_all("Item", filters={"variant_of": item.get("name")},
@@ -474,6 +474,9 @@ def get_variant_attributes(item, price_list, warehouse):
 		variant_list.append(get_price_and_stock_details(item_variant, warehouse, price_list))
 
 		for attr in item_variant.get('attributes'):
+			if attr.attribute not in attr_sequence:
+				attr_sequence.append(attr.attribute)
+
 			if not attr_dict.get(attr.attribute):
 				attr_dict.setdefault(attr.attribute, [])
 
@@ -484,7 +487,7 @@ def get_variant_attributes(item, price_list, warehouse):
 
 		variant_item_name.append(item_variant.name)
 
-	for i, attr in enumerate(attr_dict):
+	for i, attr in enumerate(attr_sequence):
 		options.append({
 			"name": attr,
 			"position": i+1,
