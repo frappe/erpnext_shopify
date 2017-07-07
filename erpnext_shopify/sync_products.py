@@ -386,6 +386,8 @@ def sync_item_with_shopify(item, price_list, warehouse):
 
 		variant_list, options, variant_item_name = get_variant_attributes(item, price_list, warehouse)
 
+		item_data["product"]["title"] = item.get("item_name")
+		item_data["product"]["body_html"] = item.get("shopify_description") or item.get("web_long_description") or item.get("description")
 		item_data["product"]["variants"] = variant_list
 		item_data["product"]["options"] = options
 
