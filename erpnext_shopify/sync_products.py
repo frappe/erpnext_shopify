@@ -321,19 +321,7 @@ def update_item(item_details, item_dict):
 	item.save()
 
 def sync_erpnext_items(price_list, warehouse, shopify_item_list):
-	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
-
-	last_sync_condition = ""
-	if shopify_settings.last_sync_datetime:
-		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
-
-	item_query = """select name, item_code, item_name, item_group,
-		description, shopify_description, has_variants, stock_uom, image, shopify_product_id, 
-		shopify_variant_id, sync_qty_with_shopify, net_weight, weight_uom, default_supplier from tabItem
-		where sync_with_shopify=1 and (variant_of is null or variant_of = '')
-		and (disabled is null or disabled = 0) %s """ % last_sync_condition
-
-	for item in frappe.db.sql(item_query, as_dict=1):
+	for item in get_erpnext_items(price_list):
 		if item.shopify_product_id not in shopify_item_list:
 			try:
 				sync_item_with_shopify(item, price_list, warehouse)
@@ -345,6 +333,36 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 			except Exception, e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
+
+def get_erpnext_items(price_list):
+	erpnext_items = []
+	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
+
+	last_sync_condition, item_price_condition = "", ""
+	if shopify_settings.last_sync_datetime:
+		last_sync_condition = "and modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
+		item_price_condition = "and ip.modified >= '{0}' ".format(shopify_settings.last_sync_datetime)
+
+	item_from_master = """select name, item_code, item_name, item_group,
+		description, shopify_description, has_variants, variant_of, stock_uom, image, shopify_product_id, 
+		shopify_variant_id, sync_qty_with_shopify, net_weight, weight_uom, default_supplier from tabItem
+		where sync_with_shopify=1 and (variant_of is null or variant_of = '')
+		and (disabled is null or disabled = 0)  %s """ % last_sync_condition
+
+	erpnext_items.extend(frappe.db.sql(item_from_master, as_dict=1))
+
+	item_from_item_price = """select i.name, i.item_code, i.item_name, i.item_group, i.description,
+		i.shopify_description, i.has_variants, i.variant_of, i.stock_uom, i.image, i.shopify_product_id,
+		i.shopify_variant_id, i.sync_qty_with_shopify, i.net_weight, i.weight_uom,
+		i.default_supplier from `tabItem` i, `tabItem Price` ip
+		where price_list = '%s' and i.name = ip.item_code
+			and sync_with_shopify=1 and (disabled is null or disabled = 0) %s""" %(price_list, item_price_condition)
+
+	updated_price_item_list = frappe.db.sql(item_from_item_price, as_dict=1)
+
+	# to avoid item duplication
+	return [frappe._dict(tupleized) for tupleized in set(tuple(item.items())
+		for item in erpnext_items + updated_price_item_list)]
 
 def sync_item_with_shopify(item, price_list, warehouse):
 	variant_item_name_list = []
@@ -361,9 +379,15 @@ def sync_item_with_shopify(item, price_list, warehouse):
 		}
 	}
 
-	if item.get("has_variants"):
+	if item.get("has_variants") or item.get("variant_of"):
+
+		if item.get("variant_of"):
+			item = frappe.get_doc("Item", item.get("variant_of"))
+
 		variant_list, options, variant_item_name = get_variant_attributes(item, price_list, warehouse)
 
+		item_data["product"]["title"] = item.get("item_name")
+		item_data["product"]["body_html"] = item.get("shopify_description") or item.get("web_long_description") or item.get("description")
 		item_data["product"]["variants"] = variant_list
 		item_data["product"]["options"] = options
 
