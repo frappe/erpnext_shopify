@@ -26,7 +26,7 @@ def sync_shopify_orders():
 				make_shopify_log(status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
 					request_data=shopify_order, exception=True)
 			except Exception, e:
-				if e.args and e.args[0] and e.args[0].startswith("402"):
+				if e.args and e.args[0] and e.args[0].decode("utf-8").startswith("402"):
 					raise e
 				else:
 					make_shopify_log(title=e.message, status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
@@ -186,10 +186,12 @@ def update_taxes_with_shipping_lines(taxes, shipping_lines, shopify_settings):
 	return taxes
 
 def get_tax_account_head(tax):
+	tax_title = tax.get("title").encode("utf-8")
+
 	tax_account =  frappe.db.get_value("Shopify Tax Account", \
-		{"parent": "Shopify Settings", "shopify_tax": tax.get("title")}, "tax_account")
+		{"parent": "Shopify Settings", "shopify_tax": tax_title}, "tax_account")
 
 	if not tax_account:
-		frappe.throw("Tax Account not specified for Shopify Tax {}".format(tax.get("title")))
+		frappe.throw("Tax Account not specified for Shopify Tax {0}".format(tax.get("title")))
 
 	return tax_account
