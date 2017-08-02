@@ -172,6 +172,7 @@ def get_attribute_value(variant_attr_val, attribute):
 	return attribute_value[0][0] if len(attribute_value)>0 else cint(variant_attr_val)
 
 def get_item_group(product_type=None):
+	import frappe.utils.nestedset
 	parent_item_group = frappe.utils.nestedset.get_root_of("Item Group")
 
 	if product_type:

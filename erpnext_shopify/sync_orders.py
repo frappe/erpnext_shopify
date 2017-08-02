@@ -64,6 +64,7 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 			"naming_series": shopify_settings.sales_order_series or "SO-Shopify-",
 			"shopify_order_id": shopify_order.get("id"),
 			"customer": frappe.db.get_value("Customer", {"shopify_customer_id": shopify_order.get("customer").get("id")}, "name"),
+			"delivery_date": nowdate(),
 			"company": shopify_settings.company,
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
