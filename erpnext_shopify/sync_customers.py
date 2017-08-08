@@ -18,6 +18,7 @@ def sync_shopify_customers(shopify_customer_list):
 			create_customer(shopify_customer, shopify_customer_list)
 
 def create_customer(shopify_customer, shopify_customer_list):
+	import frappe.utils.nestedset
 	shopify_settings = frappe.get_doc("Shopify Settings", "Shopify Settings")
 	
 	cust_name = (shopify_customer.get("first_name") + " " + (shopify_customer.get("last_name") \
