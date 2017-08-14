@@ -144,6 +144,7 @@ def get_order_items(order_items, shopify_settings):
 			"item_code": item_code,
 			"item_name": shopify_item.get("name"),
 			"rate": shopify_item.get("price"),
+			"delivery_date": nowdate(),
 			"qty": shopify_item.get("quantity"),
 			"stock_uom": shopify_item.get("sku"),
 			"warehouse": shopify_settings.warehouse
