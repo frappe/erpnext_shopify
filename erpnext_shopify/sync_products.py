@@ -270,7 +270,6 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 			item.shopify_product_id = shopify_item.get("shopify_product_id")
 			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
 			item.save()
-
 			return False
 
 		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):
@@ -351,6 +350,11 @@ def get_erpnext_items(price_list):
 		and (disabled is null or disabled = 0)  %s """ % last_sync_condition
 
 	erpnext_items.extend(frappe.db.sql(item_from_master, as_dict=1))
+
+	template_items = [item.name for item in erpnext_items if item.has_variants]
+
+	if len(template_items) > 0:
+		item_price_condition += ' and i.variant_of not in (%s)'%(' ,'.join(["'%s'"]*len(template_items)))%tuple(template_items)
 
 	item_from_item_price = """select i.name, i.item_code, i.item_name, i.item_group, i.description,
 		i.shopify_description, i.has_variants, i.variant_of, i.stock_uom, i.image, i.shopify_product_id,
