@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-import json, math, time
+import json, math, time, pytz
 from .exceptions import ShopifyError
-from frappe.utils import get_request_session
+from frappe.utils import get_request_session, get_datetime, get_time_zone
 
 def check_api_call_limit(response):
 	"""
@@ -79,7 +79,12 @@ def get_header(settings):
 def get_filtering_condition():
 	shopify_settings = get_shopify_settings()
 	if shopify_settings.last_sync_datetime:
-		return 'updated_at_min="{}"'.format(shopify_settings.last_sync_datetime)
+
+		last_sync_datetime = get_datetime(shopify_settings.last_sync_datetime)
+		timezone = pytz.timezone(get_time_zone())
+		timezone_abbr = timezone.localize(last_sync_datetime, is_dst=None)
+
+		return 'updated_at_min="{0} {1}"'.format(last_sync_datetime.strftime("%Y-%m-%d %H:%M:%S"), timezone_abbr.tzname())
 	return ''
 
 def get_total_pages(resource, ignore_filter_conditions=False):
@@ -87,8 +92,9 @@ def get_total_pages(resource, ignore_filter_conditions=False):
 
 	if not ignore_filter_conditions:
 		filter_condition = get_filtering_condition()
-
-	return int(math.ceil(get_request('/admin/{0}&{1}'.format(resource, filter_condition)).get('count', 0) / 250))
+	
+	count = get_request('/admin/{0}&{1}'.format(resource, filter_condition))
+	return int(math.ceil(count.get('count', 0) / 250))
 
 def get_country():
 	return get_request('/admin/countries.json')['countries']
