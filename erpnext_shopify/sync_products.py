@@ -124,7 +124,7 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 	}
 	item_dict["web_long_description"] = item_dict["shopify_description"]
 
-	if not is_item_exists(item_dict, attributes, shopify_item_list=shopify_item_list):
+	if not is_item_exists(item_dict, attributes, variant_of=variant_of, shopify_item_list=shopify_item_list):
 		item_details = get_item_details(shopify_item)
 
 		if not item_details:
@@ -257,24 +257,28 @@ def get_item_details(shopify_item):
 			["name", "stock_uom", "item_name"], as_dict=1)
 		return item_details
 
-def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
-	name = frappe.db.get_value("Item", {"item_name": shopify_item.get("item_name")})
+def is_item_exists(shopify_item, attributes=None, variant_of=None, shopify_item_list=[]):
+	if variant_of:
+		name = variant_of
+	else:
+		name = frappe.db.get_value("Item", {"item_name": shopify_item.get("item_name")})
+
 	shopify_item_list.append(cstr(shopify_item.get("shopify_product_id")))
 
 	if name:
-
 		item = frappe.get_doc("Item", name)
 		item.flags.ignore_mandatory=True
-		
-		if not item.shopify_product_id:
+
+		if not variant_of and not item.shopify_product_id:
 			item.shopify_product_id = shopify_item.get("shopify_product_id")
 			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
 			item.save()
-
 			return False
 
 		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):
-			variant_of = frappe.db.get_value("Item", {"shopify_product_id": item.shopify_product_id}, "variant_of")
+			if not variant_of:
+				variant_of = frappe.db.get_value("Item",
+					{"shopify_product_id": item.shopify_product_id}, "variant_of")
 
 			# create conditions for all item attributes,
 			# as we are putting condition basis on OR it will fetch all items matching either of conditions
@@ -294,10 +298,13 @@ def is_item_exists(shopify_item, attributes=None, shopify_item_list=[]):
 			if parent:
 				variant = frappe.get_doc("Item", parent[0][0])
 				variant.flags.ignore_mandatory = True
-				
+
 				variant.shopify_product_id = shopify_item.get("shopify_product_id")
 				variant.shopify_variant_id = shopify_item.get("shopify_variant_id")
 				variant.save()
+			return False
+
+		if item.shopify_product_id and item.shopify_product_id != shopify_item.get("shopify_product_id"):
 			return False
 
 		return True
@@ -351,6 +358,11 @@ def get_erpnext_items(price_list):
 		and (disabled is null or disabled = 0)  %s """ % last_sync_condition
 
 	erpnext_items.extend(frappe.db.sql(item_from_master, as_dict=1))
+
+	template_items = [item.name for item in erpnext_items if item.has_variants]
+
+	if len(template_items) > 0:
+		item_price_condition += ' and i.variant_of not in (%s)'%(' ,'.join(["'%s'"]*len(template_items)))%tuple(template_items)
 
 	item_from_item_price = """select i.name, i.item_code, i.item_name, i.item_group, i.description,
 		i.shopify_description, i.has_variants, i.variant_of, i.stock_uom, i.image, i.shopify_product_id,

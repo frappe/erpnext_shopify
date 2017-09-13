@@ -21,7 +21,7 @@ def sync_shopify_orders():
 			try:
 				create_order(shopify_order, shopify_settings)
 				frappe.local.form_dict.count_dict["orders"] += 1
-				
+
 			except ShopifyError, e:
 				make_shopify_log(status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
 					request_data=shopify_order, exception=True)
@@ -39,7 +39,7 @@ def valid_customer_and_product(shopify_order):
 			create_customer(shopify_order.get("customer"), shopify_customer_list=[])
 	else:
 		raise _("Customer is mandatory to create order")
-		
+
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in shopify_order.get("line_items"):
 		if not frappe.db.get_value("Item", {"shopify_product_id": item.get("product_id")}, "name"):
