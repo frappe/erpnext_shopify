@@ -323,6 +323,7 @@ def update_item(item_details, item_dict):
 	del item_dict["item_code"]
 	del item_dict["variant_of"]
 	del item_dict["item_name"]
+	del item_dict["warehouse"]
 
 	item.update(item_dict)
 	item.flags.ignore_mandatory = True
