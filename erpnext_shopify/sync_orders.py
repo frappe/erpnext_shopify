@@ -42,7 +42,7 @@ def valid_customer_and_product(shopify_order):
 
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in shopify_order.get("line_items"):
-		if not frappe.db.get_value("Item", {"shopify_product_id": item.get("product_id")}, "name"):
+		if item.get("product_id") and not frappe.db.get_value("Item", {"shopify_product_id": item.get("product_id")}, "name"):
 			item = get_request("/admin/products/{}.json".format(item.get("product_id")))["product"]
 			make_item(warehouse, item, shopify_item_list=[])
 	
@@ -155,6 +155,8 @@ def get_item_code(shopify_item):
 	item_code = frappe.db.get_value("Item", {"shopify_variant_id": shopify_item.get("variant_id")}, "item_code")
 	if not item_code:
 		item_code = frappe.db.get_value("Item", {"shopify_product_id": shopify_item.get("product_id")}, "item_code")
+	if not item_code:
+		item_code = frappe.db.get_value("Item", {"item_name": shopify_item.get("title")}, "item_code")
 
 	return item_code
 

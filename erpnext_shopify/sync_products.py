@@ -319,6 +319,9 @@ def update_item(item_details, item_dict):
 	if not item_dict["web_long_description"]:
 		del item_dict["web_long_description"]
 
+	if item_dict.get("warehouse"):
+		del item_dict["warehouse"]
+
 	del item_dict["description"]
 	del item_dict["item_code"]
 	del item_dict["variant_of"]

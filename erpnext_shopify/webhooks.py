@@ -4,6 +4,7 @@ from frappe import _
 from functools import wraps
 import hashlib, base64, hmac, json
 from frappe.exceptions import AuthenticationError, ValidationError
+from .shopify_requests import get_request, get_shopify_settings, post_request, delete_request
 
 
 def shopify_webhook(f):
