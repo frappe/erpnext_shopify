@@ -82,7 +82,7 @@ def get_filtering_condition():
 
 		last_sync_datetime = get_datetime(shopify_settings.last_sync_datetime)
 		timezone = pytz.timezone(get_time_zone())
-		timezone_abbr = timezone.localize(last_sync_datetime, is_dst=None)
+		timezone_abbr = timezone.localize(last_sync_datetime, is_dst=False)
 
 		return 'updated_at_min="{0} {1}"'.format(last_sync_datetime.strftime("%Y-%m-%d %H:%M:%S"), timezone_abbr.tzname())
 	return ''
