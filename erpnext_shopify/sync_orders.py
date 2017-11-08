@@ -37,8 +37,6 @@ def valid_customer_and_product(shopify_order):
 	if customer_id:
 		if not frappe.db.get_value("Customer", {"shopify_customer_id": customer_id}, "name"):
 			create_customer(shopify_order.get("customer"), shopify_customer_list=[])
-	else:
-		raise _("Customer is mandatory to create order")
 
 	warehouse = frappe.get_doc("Shopify Settings", "Shopify Settings").warehouse
 	for item in shopify_order.get("line_items"):
@@ -57,13 +55,14 @@ def create_order(shopify_order, shopify_settings, company=None):
 		create_delivery_note(shopify_order, shopify_settings, so)
 
 def create_sales_order(shopify_order, shopify_settings, company=None):
+	customer = frappe.db.get_value("Customer", {"shopify_customer_id": shopify_order.get("customer").get("id")}, "name")
 	so = frappe.db.get_value("Sales Order", {"shopify_order_id": shopify_order.get("id")}, "name")
 	if not so:
 		so = frappe.get_doc({
 			"doctype": "Sales Order",
 			"naming_series": shopify_settings.sales_order_series or "SO-Shopify-",
 			"shopify_order_id": shopify_order.get("id"),
-			"customer": frappe.db.get_value("Customer", {"shopify_customer_id": shopify_order.get("customer").get("id")}, "name"),
+			"customer": customer or shopify_settings.default_customer,
 			"delivery_date": nowdate(),
 			"company": shopify_settings.company,
 			"selling_price_list": shopify_settings.price_list,
