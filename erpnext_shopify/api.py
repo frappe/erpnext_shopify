@@ -15,7 +15,7 @@ from frappe.utils.background_jobs import enqueue
 @frappe.whitelist()
 def sync_shopify():
 	"Enqueue longjob for syncing shopify"
-	enqueue("erpnext_shopify.api.sync_shopify_resources", queue='long')
+	enqueue("erpnext_shopify.api.sync_shopify_resources", queue='long', timeout=1500)
 	frappe.msgprint(_("Queued for syncing. It may take a few minutes to an hour if this is your first sync."))
 
 @frappe.whitelist()

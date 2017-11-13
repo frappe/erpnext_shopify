@@ -196,7 +196,7 @@ def get_sku(item):
 	return ""
 
 def add_to_price_list(item, name):
-	price_list = frappe.get_doc("Shopify Settings", "Shopify Settings").price_list
+	price_list = frappe.db.get_value("Shopify Settings", None, "price_list")
 	item_price_name = frappe.db.get_value("Item Price",
 		{"item_code": name, "price_list": price_list}, "name")
 
