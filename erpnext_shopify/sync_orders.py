@@ -8,6 +8,7 @@ from .sync_customers import create_customer
 from frappe.utils import flt, nowdate, cint
 from .shopify_requests import get_request, get_shopify_orders
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note, make_sales_invoice
+product_not_exists = []
 
 def sync_orders():
 	sync_shopify_orders()
@@ -48,16 +49,29 @@ def valid_customer_and_product(shopify_order):
 
 def create_order(shopify_order, shopify_settings, company=None):
 	so = create_sales_order(shopify_order, shopify_settings, company)
-	if shopify_order.get("financial_status") == "paid" and cint(shopify_settings.sync_sales_invoice):
-		create_sales_invoice(shopify_order, shopify_settings, so)
+	if so:
+		if shopify_order.get("financial_status") == "paid" and cint(shopify_settings.sync_sales_invoice):
+			create_sales_invoice(shopify_order, shopify_settings, so)
 
-	if shopify_order.get("fulfillments") and cint(shopify_settings.sync_delivery_note):
-		create_delivery_note(shopify_order, shopify_settings, so)
+		if shopify_order.get("fulfillments") and cint(shopify_settings.sync_delivery_note):
+			create_delivery_note(shopify_order, shopify_settings, so)
 
 def create_sales_order(shopify_order, shopify_settings, company=None):
 	customer = frappe.db.get_value("Customer", {"shopify_customer_id": shopify_order.get("customer").get("id")}, "name")
 	so = frappe.db.get_value("Sales Order", {"shopify_order_id": shopify_order.get("id")}, "name")
+
 	if not so:
+		items = get_order_items(shopify_order.get("line_items"), shopify_settings)
+
+		if not items:
+			title = 'Some items not found for Order {}'.format(shopify_order.get('id'))
+			message = 'Following items are exists in order but relevant record not found in Product master'
+
+			make_shopify_log(title=title, status="Error", method="sync_shopify_orders",
+				message=message, request_data=product_not_exists, exception=True)
+
+			return ''
+
 		so = frappe.get_doc({
 			"doctype": "Sales Order",
 			"naming_series": shopify_settings.sales_order_series or "SO-Shopify-",
@@ -67,7 +81,7 @@ def create_sales_order(shopify_order, shopify_settings, company=None):
 			"company": shopify_settings.company,
 			"selling_price_list": shopify_settings.price_list,
 			"ignore_pricing_rule": 1,
-			"items": get_order_items(shopify_order.get("line_items"), shopify_settings),
+			"items": items,
 			"taxes": get_order_taxes(shopify_order, shopify_settings),
 			"apply_discount_on": "Grand Total",
 			"discount_amount": get_discounted_amount(shopify_order),
@@ -137,17 +151,30 @@ def get_discounted_amount(order):
 
 def get_order_items(order_items, shopify_settings):
 	items = []
+	all_product_exists = True
+	product_not_exists = []
+
 	for shopify_item in order_items:
-		item_code = get_item_code(shopify_item)
-		items.append({
-			"item_code": item_code,
-			"item_name": shopify_item.get("name"),
-			"rate": shopify_item.get("price"),
-			"delivery_date": nowdate(),
-			"qty": shopify_item.get("quantity"),
-			"stock_uom": shopify_item.get("sku"),
-			"warehouse": shopify_settings.warehouse
-		})
+		if not shopify_item.get('product_exists'):
+			all_product_exists = False
+			product_not_exists.append({'title':shopify_item.get('title'),
+				'shopify_order_id': shopify_item.get('id')})
+			continue
+
+		if all_product_exists:
+			item_code = get_item_code(shopify_item)
+			items.append({
+				"item_code": item_code,
+				"item_name": shopify_item.get("name"),
+				"rate": shopify_item.get("price"),
+				"delivery_date": nowdate(),
+				"qty": shopify_item.get("quantity"),
+				"stock_uom": shopify_item.get("sku"),
+				"warehouse": shopify_settings.warehouse
+			})
+		else:
+			items = []
+
 	return items
 
 def get_item_code(shopify_item):

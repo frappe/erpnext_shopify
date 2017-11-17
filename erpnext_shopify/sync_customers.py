@@ -53,6 +53,9 @@ def create_customer(shopify_customer, shopify_customer_list):
 				request_data=shopify_customer, exception=True)
 		
 def create_customer_address(customer, shopify_customer):
+	if not shopify_customer.get("addresses"):
+		return
+
 	for i, address in enumerate(shopify_customer.get("addresses")):
 		address_title, address_type = get_address_title_and_type(customer.customer_name, i)
 		try :
@@ -73,7 +76,7 @@ def create_customer_address(customer, shopify_customer):
 					"link_doctype": "Customer",
 					"link_name": customer.name
 				}]
-			}).insert()
+			}).insert(ignore_mandatory=True)
 			
 		except Exception, e:
 			make_shopify_log(title=e.message, status="Error", method="create_customer_address", message=frappe.get_traceback(),
@@ -181,7 +184,7 @@ def update_address_details(customer, last_sync_datetime):
 			
 def get_customer_addresses(customer, last_sync_datetime=None):
 	conditions = ["dl.parent = addr.name", "dl.link_doctype = 'Customer'",
-		"dl.link_name = '{0}'".format(customer['name'])]
+		"dl.link_name = '{0}'".format(frappe.db.escape(customer['name']))]
 	
 	if last_sync_datetime:
 		last_sync_condition = "addr.modified >= '{0}'".format(last_sync_datetime)
