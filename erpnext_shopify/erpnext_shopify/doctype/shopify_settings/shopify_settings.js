@@ -126,5 +126,13 @@ $.extend(erpnext_shopify.shopify_settings, {
 				}
 			}
 		}
+
+		frm.fields_dict["price_list"].get_query = function(doc) {
+			return {
+				filters:{
+					"selling": 1
+				}
+			}
+		}
 	}
 })
