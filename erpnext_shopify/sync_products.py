@@ -321,8 +321,8 @@ def update_item(item_details, item_dict):
 	item = frappe.get_doc("Item", item_details.name)
 	item_dict["stock_uom"] = item_details.stock_uom
 
-	if item_dict.get("warehouse"):
-		del item_dict["warehouse"]
+	if item_dict.get("default_warehouse"):
+		del item_dict["default_warehouse"]
 
 	del item_dict["description"]
 	del item_dict["item_code"]
