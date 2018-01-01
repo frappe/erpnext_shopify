@@ -122,7 +122,6 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"net_weight": shopify_item.get("weight"),
 		"default_supplier": get_supplier(shopify_item)
 	}
-	item_dict["web_long_description"] = item_dict["shopify_description"]
 
 	if not is_item_exists(item_dict, attributes, variant_of=variant_of, shopify_item_list=shopify_item_list):
 		item_details = get_item_details(shopify_item)
@@ -322,11 +321,8 @@ def update_item(item_details, item_dict):
 	item = frappe.get_doc("Item", item_details.name)
 	item_dict["stock_uom"] = item_details.stock_uom
 
-	if not item_dict["web_long_description"]:
-		del item_dict["web_long_description"]
-
-	if item_dict.get("warehouse"):
-		del item_dict["warehouse"]
+	if item_dict.get("default_warehouse"):
+		del item_dict["default_warehouse"]
 
 	del item_dict["description"]
 	del item_dict["item_code"]
