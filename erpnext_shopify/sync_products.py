@@ -108,7 +108,7 @@ def create_item(shopify_item, warehouse, has_variant=0, attributes=None,variant_
 		"sync_with_shopify": 1,
 		"is_stock_item": 1,
 		"item_code": cstr(shopify_item.get("item_code")) or cstr(shopify_item.get("id")),
-		"item_name": shopify_item.get("title"),
+		"item_name": shopify_item.get("title", '').strip(),
 		"description": shopify_item.get("body_html") or shopify_item.get("title"),
 		"shopify_description": shopify_item.get("body_html") or shopify_item.get("title"),
 		"item_group": get_item_group(shopify_item.get("product_type")),
@@ -420,6 +420,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 	
 	if not item.get("shopify_product_id"):
 		create_new_item_to_shopify(item, item_data, erp_item, variant_item_name_list)
+		sync_item_image(erp_item)
 
 	else:
 		item_data["product"]["id"] = item.get("shopify_product_id")
@@ -436,7 +437,6 @@ def sync_item_with_shopify(item, price_list, warehouse):
 			else:
 				raise e
 
-	sync_item_image(erp_item)
 	frappe.db.commit()
 
 def create_new_item_to_shopify(item, item_data, erp_item, variant_item_name_list):
