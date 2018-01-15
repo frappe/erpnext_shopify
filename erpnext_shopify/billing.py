@@ -66,8 +66,7 @@ def prepare_data():
 			"application_charge": {
 				"name": "ERPNext Subscription: P-{0}".format(usage_info.limits.users),
 				"price": get_plan_wise_prices(plan),
-				"return_url": "https://apps.shopify.com/erpnext",
-				"test": True
+				"return_url": usage_info.upgrade_url
 			}
 		}
 
