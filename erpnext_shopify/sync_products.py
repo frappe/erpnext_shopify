@@ -22,11 +22,11 @@ def sync_shopify_items(warehouse, shopify_item_list):
 		try:
 			make_item(warehouse, shopify_item, shopify_item_list)
 
-		except ShopifyError, e:
+		except ShopifyError as e:
 			make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 				request_data=shopify_item, exception=True)
 
-		except Exception, e:
+		except Exception as e:
 			if e.args[0] and e.args[0].startswith("402"):
 				raise e
 			else:
@@ -341,10 +341,10 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 				sync_item_with_shopify(item, price_list, warehouse)
 				frappe.local.form_dict.count_dict["products"] += 1
 
-			except ShopifyError, e:
+			except ShopifyError as e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
-			except Exception, e:
+			except Exception as e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
 
@@ -427,7 +427,7 @@ def sync_item_with_shopify(item, price_list, warehouse):
 		try:
 			put_request("/admin/products/{}.json".format(item.get("shopify_product_id")), item_data)
 
-		except requests.exceptions.HTTPError, e:
+		except requests.exceptions.HTTPError as e:
 			if e.args[0] and e.args[0].startswith("404"):
 				if frappe.db.get_value("Shopify Settings", "Shopify Settings", "if_not_exists_create_item_to_shopify"):
 					item_data["product"]["id"] = ''
@@ -590,11 +590,11 @@ def update_item_stock_qty():
 		filters={"sync_with_shopify": 1, "disabled": ("!=", 1), 'shopify_variant_id': ('!=', '')}):
 		try:
 			update_item_stock(item.item_code, shopify_settings)
-		except ShopifyError, e:
+		except ShopifyError as e:
 			make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 				request_data=item, exception=True)
 
-		except Exception, e:
+		except Exception as e:
 			if e.args[0] and e.args[0].startswith("402"):
 				raise e
 			else:
@@ -621,7 +621,7 @@ def update_item_stock(item_code, shopify_settings, bin=None):
 
 			try:
 				put_request(resource, item_data)
-			except requests.exceptions.HTTPError, e:
+			except requests.exceptions.HTTPError as e:
 				if e.args[0] and e.args[0].startswith("404"):
 					make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 						request_data=item_data, exception=True)
