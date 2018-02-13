@@ -45,7 +45,7 @@ def create_customer(shopify_customer, shopify_customer_list):
 		shopify_customer_list.append(shopify_customer.get("id"))
 		frappe.db.commit()
 			
-	except Exception, e:
+	except Exception as e:
 		if e.args[0] and e.args[0].startswith("402"):
 			raise e
 		else:
@@ -78,7 +78,7 @@ def create_customer_address(customer, shopify_customer):
 				}]
 			}).insert(ignore_mandatory=True)
 			
-		except Exception, e:
+		except Exception as e:
 			make_shopify_log(title=e.message, status="Error", method="create_customer_address", message=frappe.get_traceback(),
 				request_data=shopify_customer, exception=True)
 		
@@ -114,7 +114,7 @@ def sync_erpnext_customers(shopify_customer_list):
 			
 			frappe.local.form_dict.count_dict["customers"] += 1
 			frappe.db.commit()
-		except Exception, e:
+		except Exception as e:
 			make_shopify_log(title=e.message, status="Error", method="sync_erpnext_customers", message=frappe.get_traceback(),
 				request_data=customer, exception=True)
 

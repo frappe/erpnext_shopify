@@ -38,7 +38,7 @@ def sync_shopify_resources():
 			make_shopify_log(title="Sync Completed", status="Success", method=frappe.local.form_dict.cmd, 
 				message= "Updated {customers} customer(s), {products} item(s), {orders} order(s)".format(**frappe.local.form_dict.count_dict))
 
-		except Exception, e:
+		except Exception as e:
 			if e.args[0] and hasattr(e.args[0], "startswith") and e.args[0].startswith("402"):
 				make_shopify_log(title="Shopify has suspended your account", status="Error",
 					method="sync_shopify_resources", message=_("""Shopify has suspended your account till

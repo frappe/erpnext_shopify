@@ -21,7 +21,7 @@ def execute():
 	try:
 		shopify_items = get_item_list()
 	except ShopifyError:
-		print "Could not run shopify patch 'set_variant_id' for site: {0}".format(frappe.local.site)
+		print("Could not run shopify patch 'set_variant_id' for site: {0}".format(frappe.local.site))
 		return
 
 	if shopify_settings.shopify_url and shopify_items:

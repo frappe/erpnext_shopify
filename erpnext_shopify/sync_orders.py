@@ -26,7 +26,7 @@ def sync_shopify_orders():
 			except ShopifyError, e:
 				make_shopify_log(status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
 					request_data=shopify_order, exception=True)
-			except Exception, e:
+			except Exception as e:
 				if e.args and e.args[0] and e.args[0].decode("utf-8").startswith("402"):
 					raise e
 				else:

@@ -26,7 +26,7 @@ def sync_shopify_items(warehouse, shopify_item_list):
 			make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 				request_data=shopify_item, exception=True)
 
-		except Exception, e:
+		except Exception as e:
 			if e.args[0] and e.args[0].startswith("402"):
 				raise e
 			else:
@@ -344,7 +344,7 @@ def sync_erpnext_items(price_list, warehouse, shopify_item_list):
 			except ShopifyError, e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
-			except Exception, e:
+			except Exception as e:
 				make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 					request_data=item, exception=True)
 
@@ -594,7 +594,7 @@ def update_item_stock_qty():
 			make_shopify_log(title=e.message, status="Error", method="sync_shopify_items", message=frappe.get_traceback(),
 				request_data=item, exception=True)
 
-		except Exception, e:
+		except Exception as e:
 			if e.args[0] and e.args[0].startswith("402"):
 				raise e
 			else:
