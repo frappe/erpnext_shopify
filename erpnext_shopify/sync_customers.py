@@ -156,7 +156,7 @@ def update_customer_to_shopify(customer, last_sync_datetime):
 			{ "customer": shopify_customer})
 		update_address_details(customer, last_sync_datetime)
 		
-	except requests.exceptions.HTTPError, e:
+	except requests.exceptions.HTTPError as e:
 		if e.args[0] and e.args[0].startswith("404"):
 			customer = frappe.get_doc("Customer", customer.name)
 			customer.shopify_customer_id = ""
