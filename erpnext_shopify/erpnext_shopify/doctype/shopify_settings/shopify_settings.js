@@ -60,7 +60,7 @@ frappe.ui.form.on("Shopify Settings", "refresh", function(frm){
 				{"fieldtype": "Button", "label": __("Set last sync date"), "fieldname": "set_last_sync_date", "cssClass": "btn-primary"},
 			]
 		});
-
+		var args;
 		dialog.fields_dict.set_last_sync_date.$input.click(function() {
 			args = dialog.get_values();
 			if(!args) return;
