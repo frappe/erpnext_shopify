@@ -278,7 +278,7 @@ def is_item_exists(shopify_item, attributes=None, variant_of=None, shopify_item_
 			item.shopify_product_id = shopify_item.get("shopify_product_id")
 			item.shopify_variant_id = shopify_item.get("shopify_variant_id")
 			item.save()
-			return False
+			return True
 
 		if item.shopify_product_id and attributes and attributes[0].get("attribute_value"):
 			if not variant_of:
