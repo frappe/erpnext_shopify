@@ -23,10 +23,10 @@ def sync_shopify_orders():
 				create_order(shopify_order, shopify_settings)
 				frappe.local.form_dict.count_dict["orders"] += 1
 
-			except ShopifyError, e:
+			except ShopifyError as e:
 				make_shopify_log(status="Error", method="sync_shopify_orders", message=frappe.get_traceback(),
 					request_data=shopify_order, exception=True)
-			except Exception, e:
+			except Exception as e:
 				if e.args and e.args[0] and e.args[0].decode("utf-8").startswith("402"):
 					raise e
 				else:
